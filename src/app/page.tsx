@@ -204,12 +204,12 @@ export default function Home() {
             Deja de preocuparte por la red eléctrica. Agenda una auditoría energética gratuita hoy mismo y descubre cómo podemos blindar tu propiedad.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-6">
-            <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white font-black px-12 h-16 rounded-2xl text-lg shadow-xl shadow-secondary/20" asChild>
+            <Button size="lg" className="bg-secondary hover:bg-secondary/90 text-white font-black px-12 h-16 rounded-2xl text-lg shadow-xl shadow-secondary/20 transition-transform hover:scale-105" asChild>
               <Link href="/contacto">Contactar Ahora</Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-primary/20 text-primary hover:bg-primary/5 hover:border-primary/40 px-10 h-16 rounded-2xl font-bold" asChild>
+            <Button size="lg" className="bg-green-600 hover:bg-green-700 text-white font-black px-10 h-16 rounded-2xl text-lg shadow-xl shadow-green-900/20 transition-transform hover:scale-105 gap-3" asChild>
               <Link href="https://wa.me/584147550091" target="_blank" className="flex items-center gap-3">
-                <MessageCircle className="w-6 h-6" /> WhatsApp
+                <MessageCircle className="w-6 h-6 text-white" /> <span>WhatsApp</span>
               </Link>
             </Button>
           </div>
