@@ -1,30 +1,43 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { ShoppingCart, Search, Filter, MessageCircle, Plus, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { products } from "@/lib/data/products"
+import { products as initialProducts } from "@/lib/data/products"
 import { useCart } from "@/context/CartContext"
 
 export default function ProductosPage() {
+  const [productList, setProductList] = useState<any[]>(initialProducts)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("Todos")
-  const [addedProductId, setAddedProductId] = useState<number | null>(null)
+  const [addedProductId, setAddedProductId] = useState<string | number | null>(null)
   const { addToCart } = useCart()
 
-  const categories = useMemo(() => {
-    const cats = new Set(products.map(p => p.category))
-    return ["Todos", ...Array.from(cats).sort()]
+  useEffect(() => {
+    fetch("/api/products")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setProductList(data)
+        }
+      })
+      .catch(err => console.error("Error al cargar productos dinámicos:", err))
   }, [])
 
+  const categories = useMemo(() => {
+    const cats = new Set(productList.map(p => p.category).filter(Boolean))
+    return ["Todos", ...Array.from(cats).sort()]
+  }, [productList])
+
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
+    return productList.filter(product => {
+      const brandStr = product.brand || ""
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          product.brand.toLowerCase().includes(searchQuery.toLowerCase())
+                          brandStr.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesCategory = selectedCategory === "Todos" || product.category === selectedCategory
       return matchesSearch && matchesCategory
     })
-  }, [searchQuery, selectedCategory])
+  }, [productList, searchQuery, selectedCategory])
 
   const handleAddToCart = (product: any) => {
     addToCart(product)
@@ -106,18 +119,29 @@ export default function ProductosPage() {
                   <div className="aspect-square bg-white/5 relative p-10 flex items-center justify-center overflow-hidden border-b border-white/5">
                     <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent"></div>
                     
-                    {/* Visual Placeholder */}
-                    <div className="w-40 h-40 rounded-[3rem] bg-white/5 shadow-inner border border-white/10 flex items-center justify-center text-foreground group-hover:scale-110 transition-transform duration-700 relative z-10">
-                      <span className="text-3xl font-black uppercase tracking-tighter opacity-10">{product.brand}</span>
-                    </div>
+                    {/* Visual Image / Placeholder */}
+                    {product.image && product.image !== "/placeholder-product.png" ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 relative z-10"
+                        onError={(e) => {
+                          ;(e.target as any).style.display = "none"
+                        }}
+                      />
+                    ) : (
+                      <div className="w-40 h-40 rounded-[3rem] bg-white/5 shadow-inner border border-white/10 flex items-center justify-center text-foreground group-hover:scale-110 transition-transform duration-700 relative z-10">
+                        <span className="text-3xl font-black uppercase tracking-tighter opacity-10">{product.brand}</span>
+                      </div>
+                    )}
                     
                     {/* Brand Badge */}
-                    <div className="absolute top-6 right-6 bg-[#020813] border border-white/10 text-white text-[9px] font-black px-4 py-2 rounded-full uppercase tracking-[0.2em] shadow-2xl">
+                    <div className="absolute top-6 right-6 bg-[#020813] border border-white/10 text-white text-[9px] font-black px-4 py-2 rounded-full uppercase tracking-[0.2em] shadow-2xl z-20">
                       {product.brand}
                     </div>
 
                     {/* Category Label */}
-                    <div className="absolute bottom-6 left-6">
+                    <div className="absolute bottom-6 left-6 z-20">
                       <span className="text-[9px] bg-secondary/10 text-secondary font-black px-4 py-2 rounded-xl uppercase tracking-widest border border-secondary/20">
                         {product.category}
                       </span>
@@ -131,8 +155,18 @@ export default function ProductosPage() {
                     
                     <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
                       <div>
-                        <span className="text-[10px] text-foreground/40 uppercase tracking-widest font-black block mb-1">Cotizar</span>
-                        <span className="font-black text-xl text-foreground tracking-tighter italic">Disponible</span>
+                        <span className="text-[10px] text-foreground/40 uppercase tracking-widest font-black block mb-1">
+                          {product.price && Number(product.price) > 0 ? "Precio Ref." : "Cotizar"}
+                        </span>
+                        {product.price && Number(product.price) > 0 ? (
+                          <span className="font-black text-xl text-green-400 font-mono tracking-tight">
+                            ${Number(product.price).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="font-black text-xl text-foreground tracking-tighter italic">
+                            Disponible
+                          </span>
+                        )}
                       </div>
                       <div className="flex gap-3">
                         <Button 
