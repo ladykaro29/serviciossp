@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useCart } from "@/context/CartContext"
 import { Button } from "@/components/ui/button"
 import { Trash2, Plus, Minus, MessageCircle, ArrowLeft, ShoppingBag, ShieldCheck } from "lucide-react"
@@ -8,11 +9,61 @@ import Image from "next/image"
 
 export default function CotizacionPage() {
   const { cart, removeFromCart, updateQuantity, clearCart, totalItems } = useCart()
+  const [customerName, setCustomerName] = useState("")
+  const [customerPhone, setCustomerPhone] = useState("")
+  const [customerCity, setCustomerCity] = useState("El Vigía")
+  const [sending, setSending] = useState(false)
 
-  const handleSendQuote = () => {
-    const itemsList = cart.map(item => `- ${item.name} (${item.quantity} und.)`).join("\n")
-    const message = encodeURIComponent(`Hola, me gustaría solicitar una cotización formal para los siguientes equipos:\n\n${itemsList}\n\nQuedo atento a su respuesta.`)
+  const handleSendQuote = async () => {
+    if (!customerName.trim()) {
+      alert("Por favor ingresa tu nombre para procesar la cotización.")
+      return
+    }
+
+    setSending(true)
+
+    // Calculate total if prices exist
+    const estimatedTotal = cart.reduce((sum, item) => {
+      const p = typeof item.price === "number" ? item.price : parseFloat(String(item.price).replace(/[^0-9.]/g, "")) || 0
+      return sum + p * item.quantity
+    }, 0)
+
+    try {
+      // 1. Guardar en base de datos para el administrador
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: `${customerName} (${customerCity})`,
+          customerPhone,
+          items: cart.map(i => ({
+            id: i.id,
+            name: i.name,
+            quantity: i.quantity,
+            price: i.price,
+            brand: i.brand,
+          })),
+          total: estimatedTotal,
+        }),
+      })
+    } catch (e) {
+      console.error("Error al registrar cotización en base de datos:", e)
+    }
+
+    // 2. Enviar a WhatsApp de Servicios SP
+    const itemsList = cart.map(item => `- ${item.name} x${item.quantity} und.`).join("\n")
+    const message = encodeURIComponent(
+      `*SOLICITUD DE COTIZACIÓN - SERVICIOS SP*\n` +
+      `👤 *Cliente:* ${customerName}\n` +
+      `📞 *Teléfono:* ${customerPhone || "No especificado"}\n` +
+      `📍 *Ubicación:* ${customerCity}\n\n` +
+      `📦 *Equipos Solicitados:*\n${itemsList}\n\n` +
+      `Quedo atento a la disponibilidad y presupuesto formal.`
+    )
+
     window.open(`https://wa.me/584147550091?text=${message}`, "_blank")
+    clearCart()
+    setSending(false)
   }
 
   if (cart.length === 0) {
@@ -125,19 +176,57 @@ export default function CotizacionPage() {
                 </div>
               </div>
 
-              <div className="bg-secondary/5 p-6 rounded-2xl border border-secondary/10 flex items-start gap-4">
-                <ShieldCheck className="w-6 h-6 text-secondary shrink-0 mt-1" />
-                <p className="text-[11px] text-foreground/70 leading-relaxed font-medium">
-                  Nuestras cotizaciones incluyen estudio preliminar de viabilidad técnica en El Vigía.
-                </p>
+              {/* Client Info Inputs */}
+              <div className="space-y-4 pt-4 border-t border-white/5">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-foreground/60 mb-1.5">
+                    Tu Nombre Completo *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: Carlos Méndez"
+                    value={customerName}
+                    onChange={e => setCustomerName(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-secondary"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-foreground/60 mb-1.5">
+                      Teléfono / WhatsApp
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="0414-..."
+                      value={customerPhone}
+                      onChange={e => setCustomerPhone(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-secondary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-foreground/60 mb-1.5">
+                      Ciudad
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="El Vigía"
+                      value={customerCity}
+                      onChange={e => setCustomerCity(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-foreground focus:outline-none focus:border-secondary"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="pt-6 space-y-4">
                 <Button 
                   onClick={handleSendQuote}
+                  disabled={sending}
                   className="w-full h-20 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-[0.1em] rounded-[1.5rem] shadow-2xl shadow-green-900/20 flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] text-lg"
                 >
-                  <MessageCircle className="w-7 h-7" /> Enviar a WhatsApp
+                  <MessageCircle className="w-7 h-7" /> {sending ? "Procesando..." : "Enviar a WhatsApp"}
                 </Button>
                 <p className="text-[9px] text-center text-foreground/30 uppercase tracking-[0.3em] font-black">
                   Soporte prioritario 24/7

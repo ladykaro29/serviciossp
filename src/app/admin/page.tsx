@@ -25,7 +25,14 @@ import {
   AlertCircle,
   Loader2,
   Layers,
-  Filter
+  Filter,
+  ClipboardList,
+  MessageCircle,
+  Phone,
+  Calendar,
+  Clock,
+  CheckCircle,
+  UserCheck
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -42,19 +49,39 @@ interface ProductItem {
   updatedAt: string
 }
 
+interface OrderItem {
+  id: string
+  customerName: string
+  customerPhone: string | null
+  status: string
+  total: number
+  items: string
+  createdAt: string
+  updatedAt: string
+}
+
 export default function AdminDashboard() {
   const sessionObj = useSession()
   const session = sessionObj?.data
   const status = sessionObj?.status || "loading"
   const router = useRouter()
 
+  // Navigation Tab
+  const [activeTab, setActiveTab] = useState<"products" | "orders">("products")
+
+  // Products State
   const [products, setProducts] = useState<ProductItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("Todos")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
 
-  // Modal State
+  // Orders State
+  const [orders, setOrders] = useState<OrderItem[]>([])
+  const [loadingOrders, setLoadingOrders] = useState(false)
+  const [orderStatusFilter, setOrderStatusFilter] = useState("Todos")
+
+  // Modal State for Products
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<"create" | "edit">("create")
   const [submitting, setSubmitting] = useState(false)
@@ -101,9 +128,26 @@ export default function AdminDashboard() {
     }
   }
 
+  // Fetch orders
+  const fetchOrders = async () => {
+    setLoadingOrders(true)
+    try {
+      const res = await fetch("/api/orders")
+      if (res.ok) {
+        const data = await res.json()
+        setOrders(data)
+      }
+    } catch (err) {
+      console.error("Error al obtener cotizaciones:", err)
+    } finally {
+      setLoadingOrders(false)
+    }
+  }
+
   useEffect(() => {
     if (status === "authenticated") {
       fetchProducts()
+      fetchOrders()
     }
   }, [status])
 
@@ -132,10 +176,19 @@ export default function AdminDashboard() {
     })
   }, [products, searchQuery, selectedCategory, statusFilter])
 
+  // Filtered orders
+  const filteredOrders = useMemo(() => {
+    return orders.filter(o => {
+      if (orderStatusFilter === "Todos") return true
+      return o.status === orderStatusFilter
+    })
+  }, [orders, orderStatusFilter])
+
   // Metrics
   const totalProducts = products.length
   const activeProducts = products.filter(p => p.isActive).length
-  const inactiveProducts = totalProducts - activeProducts
+  const totalOrders = orders.length
+  const pendingOrders = orders.filter(o => o.status === "Recibido").length
 
   // Open modal for Create
   const handleOpenCreate = () => {
@@ -192,7 +245,56 @@ export default function AdminDashboard() {
     }
   }
 
-  // Submit create or edit form
+  // Change Order Status
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      if (res.ok) {
+        const updated = await res.json()
+        setOrders(prev => prev.map(o => (o.id === orderId ? updated : o)))
+        setMessage({ type: "success", text: `Estado de la cotización actualizado a "${newStatus}".` })
+        setTimeout(() => setMessage(null), 3000)
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Error al cambiar estado de cotización." })
+    }
+  }
+
+  // Delete Order
+  const handleDeleteOrder = async (orderId: string) => {
+    if (!confirm("¿Deseas eliminar esta cotización del registro?")) return
+
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" })
+      if (res.ok) {
+        setOrders(prev => prev.filter(o => o.id !== orderId))
+        setMessage({ type: "success", text: "Cotización eliminada." })
+        setTimeout(() => setMessage(null), 3000)
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Error al eliminar cotización." })
+    }
+  }
+
+  // Open WhatsApp with client
+  const handleOpenWhatsApp = (order: OrderItem) => {
+    const rawPhone = (order.customerPhone || "").replace(/[^0-9]/g, "")
+    let formattedPhone = rawPhone
+    if (formattedPhone.startsWith("04")) {
+      formattedPhone = "58" + formattedPhone.substring(1)
+    }
+    const message = encodeURIComponent(
+      `Hola ${order.customerName}, le saludamos desde Servicios y Suministros SP. Recibimos su solicitud de cotización por nuestra página web y nos gustaría atenderle.`
+    )
+    window.open(`https://wa.me/${formattedPhone || "584147550091"}?text=${message}`, "_blank")
+  }
+
+  // Submit create or edit product form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
@@ -327,36 +429,33 @@ export default function AdminDashboard() {
       </header>
 
       <main className="container mx-auto px-4 pt-10">
-        {/* Banner Title & Quick Action */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
-              Gestor de <span className="text-secondary">Productos</span>
-            </h1>
-            <p className="text-white/60 mt-1 text-sm">
-              Crea, modifica precios, categorías y disponibilidad de los productos en tiempo real.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={fetchProducts}
-              variant="outline"
-              size="lg"
-              className="border-white/10 text-white/80 hover:text-white hover:bg-white/5 rounded-2xl gap-2 font-bold"
-              disabled={loading}
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-secondary" : ""}`} />
-              Actualizar
-            </Button>
-            <Button
-              onClick={handleOpenCreate}
-              size="lg"
-              className="bg-secondary hover:bg-secondary/90 text-white font-black rounded-2xl gap-2 shadow-lg shadow-secondary/20 hover:scale-105 transition-transform"
-            >
-              <Plus className="w-5 h-5" /> Nuevo Producto
-            </Button>
-          </div>
+        {/* Module Switcher Tabs */}
+        <div className="flex border-b border-white/10 mb-8 gap-4">
+          <button
+            onClick={() => setActiveTab("products")}
+            className={`pb-4 text-base font-black uppercase tracking-wider transition-colors flex items-center gap-2 border-b-2 ${
+              activeTab === "products"
+                ? "border-secondary text-white"
+                : "border-transparent text-white/40 hover:text-white"
+            }`}
+          >
+            <Package className="w-5 h-5 text-secondary" /> Catálogo de Productos ({totalProducts})
+          </button>
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={`pb-4 text-base font-black uppercase tracking-wider transition-colors flex items-center gap-2 border-b-2 ${
+              activeTab === "orders"
+                ? "border-secondary text-white"
+                : "border-transparent text-white/40 hover:text-white"
+            }`}
+          >
+            <ClipboardList className="w-5 h-5 text-secondary" /> Cotizaciones y Pedidos ({totalOrders})
+            {pendingOrders > 0 && (
+              <span className="bg-secondary text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                {pendingOrders} nuevas
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Status Alert Notification */}
@@ -382,236 +481,438 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Metrics KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-          <div className="bg-[#041124]/60 backdrop-blur-xl p-6 rounded-3xl border border-white/5 flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
-              <Package className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-white/50">Total Productos</div>
-              <div className="text-3xl font-black text-white mt-1">{totalProducts}</div>
-            </div>
-          </div>
+        {/* TAB 1: PRODUCTS MANAGER */}
+        {activeTab === "products" && (
+          <>
+            {/* Banner Title & Quick Action */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                  Gestor de <span className="text-secondary">Productos</span>
+                </h1>
+                <p className="text-white/60 mt-1 text-sm">
+                  Crea, modifica precios, categorías y disponibilidad de los productos en tiempo real.
+                </p>
+              </div>
 
-          <div className="bg-[#041124]/60 backdrop-blur-xl p-6 rounded-3xl border border-white/5 flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-400">
-              <Eye className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-white/50">Productos Visibles</div>
-              <div className="text-3xl font-black text-green-400 mt-1">{activeProducts}</div>
-            </div>
-          </div>
-
-          <div className="bg-[#041124]/60 backdrop-blur-xl p-6 rounded-3xl border border-white/5 flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400">
-              <Layers className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-white/50">Categorías</div>
-              <div className="text-3xl font-black text-white mt-1">{categories.length - 1}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filters & Search Toolbar */}
-        <div className="bg-[#041124]/40 backdrop-blur-xl p-6 rounded-3xl border border-white/5 mb-8 flex flex-col md:flex-row gap-4 justify-between items-center">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, marca o modelo..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white text-sm focus:outline-none focus:border-secondary transition-colors"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            {/* Category Filter */}
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-sm text-white">
-              <Filter className="w-4 h-4 text-secondary" />
-              <select
-                value={selectedCategory}
-                onChange={e => setSelectedCategory(e.target.value)}
-                className="bg-transparent border-none text-white text-sm focus:outline-none cursor-pointer"
-              >
-                {categories.map(cat => (
-                  <option key={cat} value={cat} className="bg-[#041124] text-white">
-                    {cat}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={fetchProducts}
+                  variant="outline"
+                  size="lg"
+                  className="border-white/10 text-white/80 hover:text-white hover:bg-white/5 rounded-2xl gap-2 font-bold"
+                  disabled={loading}
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-secondary" : ""}`} />
+                  Actualizar
+                </Button>
+                <Button
+                  onClick={handleOpenCreate}
+                  size="lg"
+                  className="bg-secondary hover:bg-secondary/90 text-white font-black rounded-2xl gap-2 shadow-lg shadow-secondary/20 hover:scale-105 transition-transform"
+                >
+                  <Plus className="w-5 h-5" /> Nuevo Producto
+                </Button>
+              </div>
             </div>
 
-            {/* Status Filter */}
-            <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1 text-xs font-bold">
-              <button
-                onClick={() => setStatusFilter("all")}
-                className={`px-3 py-1.5 rounded-xl transition-colors ${
-                  statusFilter === "all" ? "bg-secondary text-white" : "text-white/60 hover:text-white"
-                }`}
-              >
-                Todos
-              </button>
-              <button
-                onClick={() => setStatusFilter("active")}
-                className={`px-3 py-1.5 rounded-xl transition-colors ${
-                  statusFilter === "active" ? "bg-green-600 text-white" : "text-white/60 hover:text-white"
-                }`}
-              >
-                Activos
-              </button>
-              <button
-                onClick={() => setStatusFilter("inactive")}
-                className={`px-3 py-1.5 rounded-xl transition-colors ${
-                  statusFilter === "inactive" ? "bg-red-600 text-white" : "text-white/60 hover:text-white"
-                }`}
-              >
-                Ocultos
-              </button>
-            </div>
-          </div>
-        </div>
+            {/* Metrics KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+              <div className="bg-[#041124]/60 backdrop-blur-xl p-6 rounded-3xl border border-white/5 flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary">
+                  <Package className="w-7 h-7" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-white/50">Total Productos</div>
+                  <div className="text-3xl font-black text-white mt-1">{totalProducts}</div>
+                </div>
+              </div>
 
-        {/* Products Table / Cards */}
-        {loading ? (
-          <div className="py-24 text-center">
-            <Loader2 className="w-10 h-10 animate-spin text-secondary mx-auto mb-4" />
-            <p className="text-white/50 font-medium">Cargando inventario de productos...</p>
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="bg-[#041124]/30 p-16 rounded-[2.5rem] border border-white/5 text-center">
-            <Package className="w-12 h-12 text-white/20 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">No se encontraron productos</h3>
-            <p className="text-white/50 text-sm max-w-md mx-auto">
-              Prueba cambiando los filtros de búsqueda o agrega un nuevo producto con el botón superior.
-            </p>
-          </div>
-        ) : (
-          <div className="bg-[#041124]/40 backdrop-blur-xl rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-white/5 text-[11px] font-black uppercase tracking-widest text-white/40 bg-white/[0.02]">
-                    <th className="py-5 px-6">Producto</th>
-                    <th className="py-5 px-6">Categoría</th>
-                    <th className="py-5 px-6">Marca</th>
-                    <th className="py-5 px-6">Precio ($ USD)</th>
-                    <th className="py-5 px-6">Estado</th>
-                    <th className="py-5 px-6 text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 text-sm">
-                  {filteredProducts.map(product => (
-                    <tr key={product.id} className="hover:bg-white/[0.02] transition-colors group">
-                      {/* Name & Image */}
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
-                            {product.image && product.image !== "/placeholder-product.png" ? (
-                              <img
-                                src={product.image}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                                onError={e => {
-                                  ;(e.target as any).style.display = "none"
-                                }}
-                              />
-                            ) : (
-                              <Package className="w-6 h-6 text-white/30" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-bold text-white group-hover:text-secondary transition-colors line-clamp-1 max-w-sm">
-                              {product.name}
-                            </div>
-                            {product.description && (
-                              <div className="text-xs text-white/40 line-clamp-1 max-w-sm mt-0.5">
-                                {product.description}
+              <div className="bg-[#041124]/60 backdrop-blur-xl p-6 rounded-3xl border border-white/5 flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center text-green-400">
+                  <Eye className="w-7 h-7" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-white/50">Productos Visibles</div>
+                  <div className="text-3xl font-black text-green-400 mt-1">{activeProducts}</div>
+                </div>
+              </div>
+
+              <div className="bg-[#041124]/60 backdrop-blur-xl p-6 rounded-3xl border border-white/5 flex items-center gap-5">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+                  <Layers className="w-7 h-7" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-white/50">Categorías</div>
+                  <div className="text-3xl font-black text-white mt-1">{categories.length - 1}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Filters & Search Toolbar */}
+            <div className="bg-[#041124]/40 backdrop-blur-xl p-6 rounded-3xl border border-white/5 mb-8 flex flex-col md:flex-row gap-4 justify-between items-center">
+              <div className="relative w-full md:w-96">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, marca o modelo..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white text-sm focus:outline-none focus:border-secondary transition-colors"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                {/* Category Filter */}
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl px-4 py-2 text-sm text-white">
+                  <Filter className="w-4 h-4 text-secondary" />
+                  <select
+                    value={selectedCategory}
+                    onChange={e => setSelectedCategory(e.target.value)}
+                    className="bg-transparent border-none text-white text-sm focus:outline-none cursor-pointer"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat} className="bg-[#041124] text-white">
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1 text-xs font-bold">
+                  <button
+                    onClick={() => setStatusFilter("all")}
+                    className={`px-3 py-1.5 rounded-xl transition-colors ${
+                      statusFilter === "all" ? "bg-secondary text-white" : "text-white/60 hover:text-white"
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter("active")}
+                    className={`px-3 py-1.5 rounded-xl transition-colors ${
+                      statusFilter === "active" ? "bg-green-600 text-white" : "text-white/60 hover:text-white"
+                    }`}
+                  >
+                    Activos
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter("inactive")}
+                    className={`px-3 py-1.5 rounded-xl transition-colors ${
+                      statusFilter === "inactive" ? "bg-red-600 text-white" : "text-white/60 hover:text-white"
+                    }`}
+                  >
+                    Ocultos
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Products Table */}
+            {loading ? (
+              <div className="py-24 text-center">
+                <Loader2 className="w-10 h-10 animate-spin text-secondary mx-auto mb-4" />
+                <p className="text-white/50 font-medium">Cargando inventario de productos...</p>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="bg-[#041124]/30 p-16 rounded-[2.5rem] border border-white/5 text-center">
+                <Package className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">No se encontraron productos</h3>
+                <p className="text-white/50 text-sm max-w-md mx-auto">
+                  Prueba cambiando los filtros de búsqueda o agrega un nuevo producto con el botón superior.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-[#041124]/40 backdrop-blur-xl rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-white/5 text-[11px] font-black uppercase tracking-widest text-white/40 bg-white/[0.02]">
+                        <th className="py-5 px-6">Producto</th>
+                        <th className="py-5 px-6">Categoría</th>
+                        <th className="py-5 px-6">Marca</th>
+                        <th className="py-5 px-6">Precio ($ USD)</th>
+                        <th className="py-5 px-6">Estado</th>
+                        <th className="py-5 px-6 text-right">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 text-sm">
+                      {filteredProducts.map(product => (
+                        <tr key={product.id} className="hover:bg-white/[0.02] transition-colors group">
+                          {/* Name & Image */}
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                                {product.image && product.image !== "/placeholder-product.png" ? (
+                                  <img
+                                    src={product.image}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover"
+                                    onError={e => {
+                                      ;(e.target as any).style.display = "none"
+                                    }}
+                                  />
+                                ) : (
+                                  <Package className="w-6 h-6 text-white/30" />
+                                )}
                               </div>
+                              <div>
+                                <div className="font-bold text-white group-hover:text-secondary transition-colors line-clamp-1 max-w-sm">
+                                  {product.name}
+                                </div>
+                                {product.description && (
+                                  <div className="text-xs text-white/40 line-clamp-1 max-w-sm mt-0.5">
+                                    {product.description}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Category */}
+                          <td className="py-4 px-6">
+                            <span className="inline-block px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-xs font-semibold">
+                              {product.category}
+                            </span>
+                          </td>
+
+                          {/* Brand */}
+                          <td className="py-4 px-6 text-white/70 font-medium">
+                            {product.brand || "—"}
+                          </td>
+
+                          {/* Price */}
+                          <td className="py-4 px-6 font-bold text-base text-white">
+                            {product.price > 0 ? (
+                              <span className="text-green-400 font-mono">${product.price.toFixed(2)}</span>
+                            ) : (
+                              <span className="text-white/40 font-mono text-xs uppercase tracking-wider">A Consultar</span>
                             )}
+                          </td>
+
+                          {/* Status Toggle */}
+                          <td className="py-4 px-6">
+                            <button
+                              onClick={() => handleToggleActive(product)}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                                product.isActive
+                                  ? "bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20"
+                                  : "bg-white/5 text-white/40 hover:bg-white/10 border border-white/10"
+                              }`}
+                            >
+                              {product.isActive ? (
+                                <>
+                                  <Eye className="w-3 h-3" /> Activo
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff className="w-3 h-3" /> Oculto
+                                </>
+                              )}
+                            </button>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="py-4 px-6 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                onClick={() => handleOpenEdit(product)}
+                                size="sm"
+                                variant="outline"
+                                className="h-9 px-3 border-white/10 text-white/80 hover:text-white hover:bg-white/10 rounded-xl gap-1.5 text-xs font-bold"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 text-secondary" /> Modificar
+                              </Button>
+                              <Button
+                                onClick={() => setProductToDelete(product)}
+                                size="sm"
+                                variant="destructive"
+                                className="h-9 w-9 p-0 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl"
+                                title="Eliminar producto"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Table Footer Summary */}
+                <div className="p-4 px-6 border-t border-white/5 flex justify-between items-center text-xs text-white/40 font-medium">
+                  <span>Mostrando {filteredProducts.length} de {products.length} productos</span>
+                  <span>Servicios y Suministros SP</span>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* TAB 2: ORDERS & QUOTATIONS MANAGER */}
+        {activeTab === "orders" && (
+          <div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+              <div>
+                <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">
+                  Bandeja de <span className="text-secondary">Cotizaciones</span>
+                </h1>
+                <p className="text-white/60 mt-1 text-sm">
+                  Revisa los presupuestos solicitados por clientes y contáctalos de inmediato vía WhatsApp.
+                </p>
+              </div>
+
+              <Button
+                onClick={fetchOrders}
+                variant="outline"
+                size="lg"
+                className="border-white/10 text-white/80 hover:text-white hover:bg-white/5 rounded-2xl gap-2 font-bold"
+                disabled={loadingOrders}
+              >
+                <RefreshCw className={`w-4 h-4 ${loadingOrders ? "animate-spin text-secondary" : ""}`} />
+                Actualizar
+              </Button>
+            </div>
+
+            {/* Orders Status Filters */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {["Todos", "Recibido", "En Evaluación", "Presupuesto Enviado", "Aprobado", "Cancelado"].map(st => (
+                <button
+                  key={st}
+                  onClick={() => setOrderStatusFilter(st)}
+                  className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+                    orderStatusFilter === st
+                      ? "bg-secondary text-white shadow-lg shadow-secondary/20"
+                      : "bg-[#041124]/40 text-white/50 hover:text-white border border-white/5"
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+
+            {loadingOrders ? (
+              <div className="py-24 text-center">
+                <Loader2 className="w-10 h-10 animate-spin text-secondary mx-auto mb-4" />
+                <p className="text-white/50 font-medium">Cargando cotizaciones...</p>
+              </div>
+            ) : filteredOrders.length === 0 ? (
+              <div className="bg-[#041124]/30 p-16 rounded-[2.5rem] border border-white/5 text-center">
+                <ClipboardList className="w-12 h-12 text-white/20 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-white mb-2">No hay cotizaciones en esta vista</h3>
+                <p className="text-white/50 text-sm max-w-md mx-auto">
+                  Cuando los clientes hagan solicitudes de presupuesto desde la tienda web, aparecerán registradas aquí.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredOrders.map(order => {
+                  let parsedItems: any[] = []
+                  try {
+                    parsedItems = JSON.parse(order.items)
+                  } catch (e) {
+                    parsedItems = []
+                  }
+
+                  return (
+                    <div
+                      key={order.id}
+                      className="bg-[#041124]/40 backdrop-blur-xl p-6 rounded-3xl border border-white/5 hover:border-white/10 transition-all shadow-xl flex flex-col lg:flex-row justify-between gap-6"
+                    >
+                      {/* Left: Client & Order info */}
+                      <div className="space-y-3 flex-1">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h3 className="text-lg font-black text-white">{order.customerName}</h3>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              order.status === "Recibido"
+                                ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                : order.status === "Aprobado"
+                                ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                                : order.status === "Presupuesto Enviado"
+                                ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                : "bg-white/5 text-white/50 border border-white/10"
+                            }`}
+                          >
+                            {order.status}
+                          </span>
+                          <span className="text-xs text-white/40 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" />
+                            {new Date(order.createdAt).toLocaleDateString()} {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+
+                        {order.customerPhone && (
+                          <div className="flex items-center gap-2 text-sm text-white/70">
+                            <Phone className="w-4 h-4 text-secondary" />
+                            <span>{order.customerPhone}</span>
                           </div>
-                        </div>
-                      </td>
-
-                      {/* Category */}
-                      <td className="py-4 px-6">
-                        <span className="inline-block px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-xs font-semibold">
-                          {product.category}
-                        </span>
-                      </td>
-
-                      {/* Brand */}
-                      <td className="py-4 px-6 text-white/70 font-medium">
-                        {product.brand || "—"}
-                      </td>
-
-                      {/* Price */}
-                      <td className="py-4 px-6 font-bold text-base text-white">
-                        {product.price > 0 ? (
-                          <span className="text-green-400 font-mono">${product.price.toFixed(2)}</span>
-                        ) : (
-                          <span className="text-white/40 font-mono text-xs uppercase tracking-wider">A Consultar</span>
                         )}
-                      </td>
 
-                      {/* Status Toggle */}
-                      <td className="py-4 px-6">
-                        <button
-                          onClick={() => handleToggleActive(product)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                            product.isActive
-                              ? "bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20"
-                              : "bg-white/5 text-white/40 hover:bg-white/10 border border-white/10"
-                          }`}
-                        >
-                          {product.isActive ? (
-                            <>
-                              <Eye className="w-3 h-3" /> Activo
-                            </>
-                          ) : (
-                            <>
-                              <EyeOff className="w-3 h-3" /> Oculto
-                            </>
+                        {/* Items List */}
+                        <div className="bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-2">
+                            Equipos Solicitados ({parsedItems.length})
+                          </div>
+                          <ul className="space-y-1.5 text-sm text-white/80">
+                            {parsedItems.map((it, idx) => (
+                              <li key={idx} className="flex justify-between items-center text-xs">
+                                <span>• {it.name} <strong className="text-secondary">x{it.quantity}</strong></span>
+                                {it.price && Number(it.price) > 0 && (
+                                  <span className="text-white/40 font-mono">${(Number(it.price) * it.quantity).toFixed(2)}</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                          {order.total > 0 && (
+                            <div className="mt-3 pt-2 border-t border-white/5 flex justify-between items-center text-sm font-bold text-white">
+                              <span>Total Estimado:</span>
+                              <span className="text-green-400 font-mono">${order.total.toFixed(2)} USD</span>
+                            </div>
                           )}
-                        </button>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-4 px-6 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            onClick={() => handleOpenEdit(product)}
-                            size="sm"
-                            variant="outline"
-                            className="h-9 px-3 border-white/10 text-white/80 hover:text-white hover:bg-white/10 rounded-xl gap-1.5 text-xs font-bold"
-                          >
-                            <Edit2 className="w-3.5 h-3.5 text-secondary" /> Modificar
-                          </Button>
-                          <Button
-                            onClick={() => setProductToDelete(product)}
-                            size="sm"
-                            variant="destructive"
-                            className="h-9 w-9 p-0 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl"
-                            title="Eliminar producto"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </div>
 
-            {/* Table Footer Summary */}
-            <div className="p-4 px-6 border-t border-white/5 flex justify-between items-center text-xs text-white/40 font-medium">
-              <span>Mostrando {filteredProducts.length} de {products.length} productos</span>
-              <span>Servicios y Suministros SP</span>
-            </div>
+                      {/* Right: Actions & Status Management */}
+                      <div className="flex flex-col justify-between items-end gap-4 shrink-0 min-w-[220px]">
+                        <Button
+                          onClick={() => handleOpenWhatsApp(order)}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white font-black rounded-2xl gap-2 shadow-lg shadow-green-900/20"
+                        >
+                          <MessageCircle className="w-5 h-5" /> Contactar WhatsApp
+                        </Button>
+
+                        <div className="w-full space-y-2">
+                          <label className="block text-[10px] font-black uppercase tracking-widest text-white/50">
+                            Cambiar Estado:
+                          </label>
+                          <select
+                            value={order.status}
+                            onChange={e => handleUpdateOrderStatus(order.id, e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-secondary cursor-pointer"
+                          >
+                            <option value="Recibido" className="bg-[#041124]">Recibido</option>
+                            <option value="En Evaluación" className="bg-[#041124]">En Evaluación</option>
+                            <option value="Presupuesto Enviado" className="bg-[#041124]">Presupuesto Enviado</option>
+                            <option value="Aprobado" className="bg-[#041124]">Aprobado</option>
+                            <option value="Cancelado" className="bg-[#041124]">Cancelado</option>
+                          </select>
+                        </div>
+
+                        <button
+                          onClick={() => handleDeleteOrder(order.id)}
+                          className="text-xs text-red-400/60 hover:text-red-400 flex items-center gap-1 transition-colors mt-2"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Eliminar Cotización
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -775,7 +1076,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
+      {/* DELETE PRODUCT CONFIRMATION MODAL */}
       {productToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-[#041124] border border-red-500/20 rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl text-center">
