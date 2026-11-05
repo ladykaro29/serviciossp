@@ -369,6 +369,30 @@ export default function CalculadoraSolar() {
     setScenarios(scenarios.filter((_, i) => i !== idx));
   };
 
+  const guardarLeadEnServidor = async () => {
+    if (!leadName) return;
+    try {
+      await fetch("/api/solar-leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: leadName,
+          customerPhone: leadPhone,
+          customerCity: leadCity || "El Vigía",
+          propertyType: proposito || "Residencial",
+          dailyKwh: parseFloat((consumoTotal_Wh / 1000).toFixed(2)),
+          inverterCapacity: inversorSeleccionado.capacidad_kVA,
+          panelsCount: numPaneles,
+          batteryCapacityAh: capacidadReal_Ah,
+          priceMin: precioMin,
+          priceMax: precioMax,
+        }),
+      });
+    } catch (err) {
+      console.error("Error al guardar lead solar en el servidor:", err);
+    }
+  };
+
   // ENVIAR POR WHATSAPP
   const handleWhatsAppSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -376,6 +400,8 @@ export default function CalculadoraSolar() {
       alert("Por favor ingresa tu nombre y teléfono para enviar la cotización.");
       return;
     }
+
+    guardarLeadEnServidor();
 
     const financingText = financing ? "☑️ Sí, me interesa financiamiento." : "☐ No requiero financiamiento.";
     const visitText = visitRequest ? "☑️ Solicito visita técnica GRATIS en mi propiedad." : "☐ Por ahora solo cotización digital.";
@@ -420,6 +446,8 @@ ${visitText}
       if (formElem) formElem.scrollIntoView({ behavior: "smooth" });
       return;
     }
+
+    guardarLeadEnServidor();
 
     const doc = new jsPDF({
       orientation: "portrait",

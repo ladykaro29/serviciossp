@@ -12,15 +12,35 @@ model User {
   email     String   @unique
   password  String
   name      String?
-  role      String   @default("ADMIN")
+  role      String   @default("ADMIN") // ADMIN, VENDEDOR, TECNICO, CONTADOR
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+model SystemSetting {
+  id                     String   @id @default("default")
+  usdToBs                Float    @default(65.50)
+  eurToBs                Float    @default(71.20)
+  ivaPercent             Float    @default(16.0)
+  igtfPercent            Float    @default(3.0)
+  defaultInitialPercent  Float    @default(40.0)
+  defaultInstallments    Int      @default(3)
+  defaultFrequencyDays   Int      @default(14)
+  companyName            String   @default("Servicios y Suministros SP, C.A.")
+  companyRif             String   @default("J-40403649-0")
+  updatedAt              DateTime @updatedAt
 }
 
 model Product {
   id          String   @id @default(cuid())
+  sku         String?  @default("")
   name        String
   category    String
   price       Float?   @default(0)
+  costPrice   Float    @default(0)
+  stock       Int      @default(15)
+  minStock    Int      @default(3)
+  unit        String   @default("UND")
   brand       String?
   image       String?
   description String?  @default("")
@@ -29,13 +49,190 @@ model Product {
   updatedAt   DateTime @updatedAt
 }
 
-model Order {
+model InventoryMovement {
   id            String   @id @default(cuid())
-  customerName  String
-  customerPhone String?
-  status        String   @default("Recibido")
-  total         Float    @default(0)
-  items         String   // JSON stringified array of items
+  productId     String
+  productName   String
+  type          String   // ENTRADA, SALIDA, AJUSTE
+  quantity      Int
+  previousStock Int      @default(0)
+  newStock      Int      @default(0)
+  unitCost      Float    @default(0)
+  reference     String?  @default("")
+  notes         String?  @default("")
+  createdAt     DateTime @default(now())
+}
+
+model Order {
+  id               String   @id @default(cuid())
+  invoiceNumber    String?  @default("")
+  customerId       String?
+  customerName     String
+  customerDoc      String?  @default("")
+  customerPhone    String?
+  status           String   @default("Recibido") // Recibido, En Proceso, Facturado, Completado, Cancelado
+  paymentCondition String   @default("CONTADO")  // CONTADO, CREDITO
+  paymentMethod    String?  @default("EFECTIVO_USD")
+  currency         String   @default("USD")      // USD, BS, EUR
+  exchangeRate     Float    @default(1)
+  subtotal         Float    @default(0)
+  tax              Float    @default(0)
+  total            Float    @default(0)
+  paidAmount       Float    @default(0)
+  items            String   // JSON stringified array of items
+  notes            String?  @default("")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  name        String
+  document    String?  @default("") // CI o RIF
+  phone       String?  @default("")
+  email       String?  @default("")
+  city        String?  @default("El Vigía")
+  address     String?  @default("")
+  type        String   @default("PERSONA") // PERSONA, EMPRESA, MAYORISTA
+  stage       String   @default("CLIENTE") // PROSPECTO, COTIZADO, CLIENTE, VIP
+  creditLimit Float    @default(500)
+  notes       String?  @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String
+  rif         String?  @default("")
+  contactName String?  @default("")
+  phone       String?  @default("")
+  email       String?  @default("")
+  address     String?  @default("")
+  category    String?  @default("General")
+  notes       String?  @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Purchase {
+  id               String   @id @default(cuid())
+  invoiceNumber    String
+  supplierId       String?
+  supplierName     String
+  status           String   @default("RECIBIDA") // RECIBIDA, PENDIENTE, ANULADA
+  paymentCondition String   @default("CONTADO")  // CONTADO, CREDITO
+  paymentMethod    String?  @default("TRANSFERENCIA")
+  currency         String   @default("USD")
+  exchangeRate     Float    @default(1)
+  total            Float    @default(0)
+  paidAmount       Float    @default(0)
+  items            String   // JSON array of { productId, name, quantity, unitCost, subtotal }
+  notes            String?  @default("")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model AccountReceivable {
+  id                String   @id @default(cuid())
+  orderId           String?
+  customerId        String?
+  customerName      String
+  customerPhone     String?  @default("")
+  description       String?  @default("")
+  totalAmount       Float    @default(0)
+  initialAmount     Float    @default(0)
+  paidAmount        Float    @default(0)
+  balance           Float    @default(0)
+  installmentsCount Int      @default(3)
+  frequencyDays     Int      @default(14)
+  installments      String   @default("[]") // JSON array of { number, dueDate, amount, paidAmount, status, paidAt }
+  dueDate           DateTime @default(now())
+  status            String   @default("PENDIENTE") // PENDIENTE, PARCIAL, PAGADO, VENCIDO
+  notes             String?  @default("")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model AccountPayable {
+  id            String   @id @default(cuid())
+  purchaseId    String?
+  supplierId    String?
+  supplierName  String
+  invoiceNumber String?  @default("")
+  description   String?  @default("")
+  totalAmount   Float    @default(0)
+  paidAmount    Float    @default(0)
+  balance       Float    @default(0)
+  dueDate       DateTime @default(now())
+  status        String   @default("PENDIENTE") // PENDIENTE, PARCIAL, PAGADO, VENCIDO
+  notes         String?  @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model BankAccount {
+  id            String   @id @default(cuid())
+  name          String
+  bankName      String
+  accountNumber String?  @default("")
+  currency      String   @default("USD") // USD, BS, EUR
+  type          String   @default("BANCO") // BANCO, EFECTIVO, ZELLE, PAGOMOVIL, BINANCE
+  balance       Float    @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model BankTransaction {
+  id              String   @id @default(cuid())
+  bankAccountId   String
+  bankAccountName String
+  type            String   // INGRESO, EGRESO
+  category        String   @default("VENTA") // VENTA, COBRO_CXC, COMPRA, PAGO_CXP, GASTO_OPERATIVO, SERVICIO_TECNICO, AJUSTE
+  amount          Float    @default(0)
+  currency        String   @default("USD")
+  exchangeRate    Float    @default(1)
+  amountUsd       Float    @default(0)
+  reference       String?  @default("")
+  description     String?  @default("")
+  relatedId       String?  @default("")
+  createdAt       DateTime @default(now())
+}
+
+model ServiceOrder {
+  id             String   @id @default(cuid())
+  code           String
+  customerName   String
+  customerPhone  String?  @default("")
+  customerCity   String?  @default("El Vigía")
+  serviceType    String   @default("ENERGIA_SOLAR") // ENERGIA_SOLAR, CCTV, CERCA_ELECTRICA, REDES, MANTENIMIENTO
+  technicianName String?  @default("Por Asignar")
+  status         String   @default("VISITA_AGENDADA") // VISITA_AGENDADA, PRESUPUESTADO, EN_INSTALACION, COMPLETADO, GARANTIA
+  scheduledDate  String?  @default("")
+  laborCost      Float    @default(0)
+  materialsCost  Float    @default(0)
+  totalPrice     Float    @default(0)
+  serialNumbers  String?  @default("")
+  notes          String?  @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SolarLead {
+  id                    String   @id @default(cuid())
+  customerName          String
+  customerPhone         String?
+  customerCity          String?  @default("El Vigía")
+  propertyType          String?  @default("Residencial")
+  dailyKwh              Float    @default(0)
+  inverterCapacity      Float    @default(0)
+  panelsCount           Int      @default(0)
+  batteryCapacityAh     Float    @default(0)
+  priceMin              Float    @default(0)
+  priceMax              Float    @default(0)
+  status                String   @default("Nuevo")
+  notes                 String?  @default("")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }

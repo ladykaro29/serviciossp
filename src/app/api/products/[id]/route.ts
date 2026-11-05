@@ -16,20 +16,49 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const { name, category, price, brand, description, image, isActive } = body
+    const { name, sku, category, price, costPrice, stock, minStock, unit, brand, description, image, isActive } = body
+
+    const existing = await prisma.product.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 })
+    }
+
+    const newStockVal = stock !== undefined ? parseInt(String(stock), 10) : existing.stock
 
     const updatedProduct = await prisma.product.update({
       where: { id },
       data: {
         ...(name !== undefined && { name }),
+        ...(sku !== undefined && { sku }),
         ...(category !== undefined && { category }),
         ...(price !== undefined && { price: parseFloat(price) || 0 }),
+        ...(costPrice !== undefined && { costPrice: parseFloat(costPrice) || 0 }),
+        ...(stock !== undefined && { stock: newStockVal }),
+        ...(minStock !== undefined && { minStock: parseInt(String(minStock), 10) || 0 }),
+        ...(unit !== undefined && { unit }),
         ...(brand !== undefined && { brand }),
         ...(description !== undefined && { description }),
         ...(image !== undefined && { image }),
         ...(isActive !== undefined && { isActive }),
       },
     })
+
+    if (stock !== undefined && newStockVal !== existing.stock) {
+      const diff = newStockVal - existing.stock
+      await prisma.inventoryMovement.create({
+        data: {
+          productId: updatedProduct.id,
+          productName: updatedProduct.name,
+          type: diff > 0 ? "ENTRADA" : "SALIDA",
+          quantity: Math.abs(diff),
+          previousStock: existing.stock,
+          newStock: newStockVal,
+          unitCost: updatedProduct.costPrice,
+          reference: "AJUSTE-MANUAL",
+          notes: "Ajuste desde edición de ficha de producto",
+        },
+      })
+    }
 
     return NextResponse.json(updatedProduct)
   } catch (error) {

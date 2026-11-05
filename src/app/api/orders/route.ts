@@ -35,7 +35,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { customerName, customerPhone, items, total } = body
+    const { customerName, customerPhone, customerDoc, paymentCondition, notes, items, total } = body
 
     if (!customerName || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -44,13 +44,20 @@ export async function POST(request: Request) {
       )
     }
 
+    const parsedTotal = parseFloat(total) || 0
+
     const newOrder = await prisma.order.create({
       data: {
+        invoiceNumber: `COT-${Date.now().toString().slice(-6)}`,
         customerName,
+        customerDoc: customerDoc || "",
         customerPhone: customerPhone || "",
         status: "Recibido",
-        total: parseFloat(total) || 0,
+        paymentCondition: paymentCondition || "CONTADO",
+        subtotal: parsedTotal,
+        total: parsedTotal,
         items: JSON.stringify(items),
+        notes: notes || "",
       },
     })
 
