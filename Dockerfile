@@ -30,8 +30,8 @@ ENV RESEND_API_KEY=$RESEND_API_KEY
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client and sync SQLite schema
+RUN npx prisma generate && npx prisma db push --accept-data-loss && cp prisma/dev.db ./dev.db
 
 # Build Next.js application
 RUN npm run build

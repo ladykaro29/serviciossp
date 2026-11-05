@@ -6,7 +6,7 @@ export default function middleware(req: NextRequest & { nextauth?: any }) {
   const { pathname } = req.nextUrl
 
   // 1. Redirecciones case-sensitive para evitar bucle infinito
-  const uppercaseRoutes = ["/CALCULADORA", "/Calculadora", "/PRODUCTOS", "/Productos", "/SERVICIOS", "/Servicios"]
+  const uppercaseRoutes = ["/CALCULADORA", "/Calculadora", "/PRODUCTOS", "/Productos", "/SERVICIOS", "/Servicios", "/COTIZACION", "/Cotizacion"]
   if (uppercaseRoutes.includes(pathname)) {
     const lowercasePath = pathname.toLowerCase()
     return NextResponse.redirect(new URL(lowercasePath, req.url), 301)

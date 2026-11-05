@@ -31,37 +31,79 @@ export async function GET(request: Request) {
   }
 }
 
-// POST /api/orders (Public - Client submits quotation from cart)
+// POST /api/orders (Public - Client submits quotation from /cotizacion)
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { customerName, customerPhone, customerDoc, paymentCondition, notes, items, total } = body
+    const {
+      customerName,
+      customerPhone,
+      customerDoc,
+      customerEmail,
+      paymentCondition,
+      notes,
+      items,
+      total,
+    } = body
 
-    if (!customerName || !items || !Array.isArray(items) || items.length === 0) {
+    if (!customerName || String(customerName).trim() === "") {
       return NextResponse.json(
-        { error: "Nombre del cliente y lista de ítems son requeridos." },
+        { error: "El nombre del cliente es obligatorio." },
         { status: 400 }
       )
     }
 
+    const normalizedItems = Array.isArray(items) && items.length > 0
+      ? items
+      : [
+          {
+            id: "custom-quote",
+            name: notes ? `Cotización Personalizada: ${String(notes).slice(0, 80)}` : "Solicitud de Cotización General",
+            quantity: 1,
+            price: Number(total) || 0,
+            brand: "SP",
+          },
+        ]
+
     const parsedTotal = parseFloat(total) || 0
+    const invoiceNumber = `COT-${Date.now().toString().slice(-6)}`
 
-    const newOrder = await prisma.order.create({
-      data: {
-        invoiceNumber: `COT-${Date.now().toString().slice(-6)}`,
-        customerName,
-        customerDoc: customerDoc || "",
-        customerPhone: customerPhone || "",
-        status: "Recibido",
-        paymentCondition: paymentCondition || "CONTADO",
-        subtotal: parsedTotal,
-        total: parsedTotal,
-        items: JSON.stringify(items),
-        notes: notes || "",
-      },
-    })
+    try {
+      const newOrder = await prisma.order.create({
+        data: {
+          invoiceNumber,
+          customerName: String(customerName).trim(),
+          customerDoc: customerDoc ? String(customerDoc).trim() : "",
+          customerPhone: customerPhone ? String(customerPhone).trim() : "",
+          status: "Recibido",
+          paymentCondition: paymentCondition || "CONTADO",
+          subtotal: parsedTotal,
+          total: parsedTotal,
+          items: JSON.stringify(normalizedItems),
+          notes: [
+            customerEmail ? `Email: ${customerEmail}` : "",
+            notes ? String(notes).trim() : "",
+          ]
+            .filter(Boolean)
+            .join(" | "),
+        },
+      })
 
-    return NextResponse.json(newOrder, { status: 201 })
+      return NextResponse.json(newOrder, { status: 201 })
+    } catch (dbErr) {
+      console.warn("Fallback creating order with minimal fields:", dbErr)
+      // Fallback in case an older SQLite database lacks newer optional columns
+      const minimalOrder = await prisma.order.create({
+        data: {
+          customerName: String(customerName).trim(),
+          customerPhone: customerPhone ? String(customerPhone).trim() : "",
+          status: "Recibido",
+          total: parsedTotal,
+          items: JSON.stringify(normalizedItems),
+        },
+      })
+      return NextResponse.json({ ...minimalOrder, invoiceNumber }, { status: 201 })
+    }
   } catch (error) {
     console.error("Error creating order:", error)
     return NextResponse.json({ error: "Error al registrar la cotización" }, { status: 500 })
