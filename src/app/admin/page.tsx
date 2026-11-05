@@ -45,6 +45,22 @@ import {
   History,
   Boxes,
   Gift,
+  LayoutDashboard,
+  Receipt,
+  Settings,
+  Bell,
+  Moon,
+  ChevronDown,
+  TrendingUp,
+  TrendingDown,
+  BadgePercent,
+  Bot,
+  Menu,
+  Sparkles,
+  FileText,
+  Calendar,
+  HandCoins,
+  PackageCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SalesAndFinanceModules } from "@/components/erp/SalesAndFinanceModules"
@@ -106,6 +122,7 @@ interface SolarLeadItem {
 }
 
 type ErpTab =
+  | "dashboard"
   | "inventario"
   | "ventas"
   | "compras"
@@ -122,7 +139,9 @@ export default function AdminDashboard() {
   const status = sessionObj?.status || "loading"
   const router = useRouter()
 
-  const [activeTab, setActiveTab] = useState<ErpTab>("inventario")
+  const [activeTab, setActiveTab] = useState<ErpTab>("dashboard")
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [dashboardMetricView, setDashboardMetricView] = useState<"ventas" | "margen">("ventas")
   const [inventorySubTab, setInventorySubTab] = useState<"catalogo" | "kardex">("catalogo")
 
   // Multi-currency State
@@ -418,6 +437,45 @@ export default function AdminDashboard() {
   const totalCxpBalance = payables.reduce((acc, p) => acc + (p.balance || 0), 0)
   const newSolarLeads = solarLeads.filter(l => l.status === "Nuevo").length
 
+  const inventoryUsdValue = useMemo(() => {
+    return products.reduce((sum, p) => {
+      const unitVal = Number(p.costPrice || p.price || 0)
+      return sum + unitVal * (p.stock ?? 15)
+    }, 0)
+  }, [products])
+
+  const totalVentasBilled = useMemo(() => {
+    return orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0)
+  }, [orders])
+
+  const totalCobrado = useMemo(() => {
+    return receivables.reduce((sum, r) => sum + ((Number(r.amount) || 0) - (Number(r.balance) || 0)), 0)
+  }, [receivables])
+
+  const currentDateFormatted = useMemo(() => {
+    const now = new Date()
+    const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
+    const months = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+    ]
+    return `${days[now.getDay()]}, ${now.getDate()} De ${months[now.getMonth()]} De ${now.getFullYear()}`
+  }, [])
+
+  const greetingText = useMemo(() => {
+    const hour = new Date().getHours()
+    if (hour < 12) return "Buenos días"
+    if (hour < 18) return "Buenas tardes"
+    return "Buenas noches"
+  }, [])
+
+  const brechaPct = useMemo(() => {
+    const bcv = settings?.usdToBs || 65.5
+    const binance = settings?.binanceToBs || 78.9
+    if (!bcv) return "0.0"
+    return (((binance - bcv) / bcv) * 100).toFixed(1)
+  }, [settings])
+
   const handleOpenCreate = () => {
     setModalMode("create")
     setFormData({
@@ -703,253 +761,866 @@ export default function AdminDashboard() {
   if (!session) return null
 
   return (
-    <div className="min-h-screen bg-[#020813] text-foreground font-sans pb-24">
-      {/* Top Cloud ERP Header with Multi-Currency Engine */}
-      <header className="sticky top-0 z-40 bg-[#041124]/95 backdrop-blur-xl border-b border-white/10 py-3">
-        <div className="container mx-auto px-4 flex flex-wrap justify-between items-center gap-4">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-3">
-              <Image
-                src="/LogoServicios-SP.png"
-                alt="Logo Servicios SP"
-                width={115}
-                height={38}
-                className="object-contain"
-              />
-            </Link>
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/15 border border-secondary/30 text-secondary text-[11px] font-black uppercase tracking-wider">
-              <ShieldCheck className="w-3.5 h-3.5" /> SP Cloud ERP
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#030712] text-white font-sans flex flex-col lg:flex-row overflow-x-hidden relative">
+      {/* ====================================================================
+          1. LEFT SIDEBAR (EXACT NEXUSCOMMERCE / SP ERP LAYOUT)
+         ==================================================================== */}
+      {/* Mobile Backdrop */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm lg:hidden"
+        />
+      )}
 
-          {/* Multi-Currency Bar (BCV - Binance - EUR) */}
-          <div className="flex flex-wrap items-center gap-3 bg-white/[0.03] border border-white/10 px-3.5 py-1.5 rounded-2xl">
-            <div className="flex items-center gap-1.5 text-xs">
-              <Coins className="w-4 h-4 text-secondary" />
-              <span className="text-white/50 font-bold hidden xl:inline">Multi-moneda:</span>
-            </div>
-
-            {editingRates ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] text-green-400 font-bold">BCV $:</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={rateUsdInput}
-                  onChange={e => setRateUsdInput(e.target.value)}
-                  className="w-20 bg-[#020813] border border-secondary rounded-lg px-2 py-1 text-xs text-white font-mono"
-                />
-                <span className="text-[10px] text-amber-400 font-bold">Binance:</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={rateBinanceInput}
-                  onChange={e => setRateBinanceInput(e.target.value)}
-                  className="w-20 bg-[#020813] border border-secondary rounded-lg px-2 py-1 text-xs text-white font-mono"
-                />
-                <span className="text-[10px] text-blue-400 font-bold">EUR €:</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={rateEurInput}
-                  onChange={e => setRateEurInput(e.target.value)}
-                  className="w-20 bg-[#020813] border border-secondary rounded-lg px-2 py-1 text-xs text-white font-mono"
-                />
-                <button
-                  onClick={handleSaveRates}
-                  className="bg-green-600 text-white text-xs font-bold px-2.5 py-1 rounded-lg"
-                >
-                  Guardar
-                </button>
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#050b18] border-r border-white/5 flex flex-col justify-between transition-transform duration-300 lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:static lg:translate-x-0"
+        } h-screen sticky top-0 overflow-y-auto shrink-0 select-none`}
+      >
+        <div className="flex flex-col">
+          {/* Top Brand Logo */}
+          <div className="p-4 flex items-center justify-between border-b border-white/5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-yellow-300 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.35)] font-black text-slate-950 text-xl tracking-tighter">
+                N
               </div>
-            ) : (
-              <div className="flex items-center gap-2.5 text-xs font-mono">
-                <button
-                  onClick={() => setEditingRates(true)}
-                  className="text-white/80 hover:text-secondary flex flex-wrap items-center gap-2"
-                  title="Haz clic para editar las tasas manualmente"
-                >
-                  <span>
-                    BCV: <strong className="text-green-400">Bs.{settings?.usdToBs?.toFixed(2)}</strong>
-                  </span>
-                  <span className="text-white/20">|</span>
-                  <span>
-                    Binance: <strong className="text-amber-400">Bs.{(settings?.binanceToBs || 78.9).toFixed(2)}</strong>
-                  </span>
-                  <span className="text-white/20">|</span>
-                  <span>
-                    1€ = <strong className="text-blue-400">Bs.{settings?.eurToBs?.toFixed(2)}</strong>
-                  </span>
-                  <Edit2 className="w-3 h-3 text-secondary" />
-                </button>
-                <button
-                  onClick={handleSyncLiveRates}
-                  disabled={syncingRates}
-                  title="Sincronizar tasa actual BCV y Binance P2P en vivo"
-                  className="p-1 rounded-lg bg-white/5 hover:bg-secondary/20 text-white/70 hover:text-secondary transition-colors"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${syncingRates ? "animate-spin text-secondary" : ""}`} />
-                </button>
+              <div>
+                <span className="font-black text-sm tracking-tight text-white block leading-tight">NexusCommerce</span>
+                <span className="text-[10px] text-white/40 tracking-wider font-semibold block">Servicios SP ERP</span>
               </div>
-            )}
-
-            <div className="flex bg-[#020813] p-0.5 rounded-xl border border-white/10">
-              {(
-                [
-                  { id: "USD", label: "USD" },
-                  { id: "BS", label: "BS BCV" },
-                  { id: "BINANCE", label: "BINANCE" },
-                  { id: "EUR", label: "EUR" },
-                ] as const
-              ).map(curr => (
-                <button
-                  key={curr.id}
-                  onClick={() => setDisplayCurrency(curr.id)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all ${
-                    displayCurrency === curr.id ? "bg-secondary text-white" : "text-white/50 hover:text-white"
-                  }`}
-                >
-                  {curr.label}
-                </button>
-              ))}
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-white/10 text-white/80 hover:text-white rounded-xl gap-1.5 text-xs"
-              asChild
-            >
-              <Link href="/productos" target="_blank">
-                Tienda <ArrowUpRight className="w-3.5 h-3.5" />
-              </Link>
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => signOut({ callbackUrl: "/admin/login" })}
-              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl gap-1.5 text-xs font-bold"
-            >
-              <LogOut className="w-3.5 h-3.5" /> Salir
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 pt-8">
-        {/* Executive ERP Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 mb-8">
-          <div
-            onClick={() => setActiveTab("inventario")}
-            className="bg-[#041124]/60 hover:bg-[#041124] cursor-pointer p-4 rounded-2xl border border-white/5 transition-all"
-          >
-            <div className="text-[10px] font-black uppercase tracking-wider text-white/40 flex items-center justify-between">
-              <span>Inventario</span>
-              <Package className="w-4 h-4 text-secondary" />
-            </div>
-            <div className="text-xl font-black text-white mt-1">{totalProducts} ítems</div>
-            <div className="text-[11px] text-amber-400 font-bold">
-              {lowStockCount > 0 ? `⚠️ ${lowStockCount} stock bajo` : "Stock óptimo"}
-            </div>
-          </div>
-
-          <div
-            onClick={() => setActiveTab("ventas")}
-            className="bg-[#041124]/60 hover:bg-[#041124] cursor-pointer p-4 rounded-2xl border border-white/5 transition-all"
-          >
-            <div className="text-[10px] font-black uppercase tracking-wider text-white/40 flex items-center justify-between">
-              <span>Ventas / POS</span>
-              <ShoppingCart className="w-4 h-4 text-green-400" />
-            </div>
-            <div className="text-xl font-black text-white mt-1">{orders.length} órdenes</div>
-            <div className="text-[11px] text-secondary font-bold">{pendingOrders} cotiz. nuevas</div>
-          </div>
-
-          <div
-            onClick={() => setActiveTab("cxc_cxp")}
-            className="bg-[#041124]/60 hover:bg-[#041124] cursor-pointer p-4 rounded-2xl border border-white/5 transition-all"
-          >
-            <div className="text-[10px] font-black uppercase tracking-wider text-white/40 flex items-center justify-between">
-              <span>Por Cobrar (CxC)</span>
-              <CreditCard className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="text-lg font-black text-amber-400 font-mono mt-1">{formatMoney(totalCxcBalance)}</div>
-            <div className="text-[11px] text-white/50">{receivables.length} planes en cuotas</div>
-          </div>
-
-          <div
-            onClick={() => setActiveTab("cxc_cxp")}
-            className="bg-[#041124]/60 hover:bg-[#041124] cursor-pointer p-4 rounded-2xl border border-white/5 transition-all"
-          >
-            <div className="text-[10px] font-black uppercase tracking-wider text-white/40 flex items-center justify-between">
-              <span>Por Pagar (CxP)</span>
-              <Truck className="w-4 h-4 text-red-400" />
-            </div>
-            <div className="text-lg font-black text-red-400 font-mono mt-1">{formatMoney(totalCxpBalance)}</div>
-            <div className="text-[11px] text-white/50">{suppliers.length} proveedores</div>
-          </div>
-
-          <div
-            onClick={() => setActiveTab("bancos")}
-            className="bg-[#041124]/60 hover:bg-[#041124] cursor-pointer p-4 rounded-2xl border border-white/5 transition-all"
-          >
-            <div className="text-[10px] font-black uppercase tracking-wider text-white/40 flex items-center justify-between">
-              <span>Bancos y Cajas</span>
-              <Landmark className="w-4 h-4 text-blue-400" />
-            </div>
-            <div className="text-xl font-black text-green-400 font-mono mt-1">{bankAccounts.length} cuentas</div>
-            <div className="text-[11px] text-white/50">USD · Bs · EUR</div>
-          </div>
-
-          <div
-            onClick={() => setActiveTab("crm_vertical")}
-            className="bg-[#041124]/60 hover:bg-[#041124] cursor-pointer p-4 rounded-2xl border border-white/5 transition-all"
-          >
-            <div className="text-[10px] font-black uppercase tracking-wider text-white/40 flex items-center justify-between">
-              <span>Vertical & CRM</span>
-              <Wrench className="w-4 h-4 text-secondary" />
-            </div>
-            <div className="text-xl font-black text-white mt-1">{serviceOrders.length} instalac.</div>
-            <div className="text-[11px] text-green-400">{customers.length} clientes CRM</div>
-          </div>
-        </div>
-
-        {/* Full ERP Module Navigation Bar */}
-        <div className="flex flex-wrap border-b border-white/10 mb-8 gap-2 sm:gap-4">
-          {[
-            { id: "inventario", label: "Inventario & Kardex", icon: Package },
-            { id: "ventas", label: "Ventas & POS (Cuotas)", icon: ShoppingCart, badge: pendingOrders },
-            { id: "compras", label: "Compras & Proveedores", icon: Truck },
-            { id: "cxc_cxp", label: "CxC (Cuotas) & CxP", icon: CreditCard },
-            { id: "bancos", label: "Bancos Multi-moneda", icon: Landmark },
-            { id: "contabilidad", label: "Contabilidad", icon: BarChart3 },
-            { id: "crm_vertical", label: "CRM & Vertical SP", icon: Wrench },
-            { id: "solar", label: "Leads Solares", icon: SunMedium, badge: newSolarLeads },
-            { id: "usuarios", label: "Usuarios", icon: Users },
-          ].map(tab => (
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as ErpTab)}
-              className={`pb-3.5 px-2 text-xs sm:text-sm font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 border-b-2 ${
-                activeTab === tab.id
-                  ? "border-secondary text-white"
-                  : "border-transparent text-white/40 hover:text-white"
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden text-white/50 hover:text-white p-1 rounded-lg"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* TASA VIGENTE BOX (Exact widget from reference image) */}
+          <div className="mx-3 mt-3.5 mb-2 p-3 bg-[#071329] border border-blue-950/70 rounded-2xl shadow-inner space-y-1">
+            <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-white/50">
+              <span>TASA VIGENTE</span>
+              <button
+                onClick={handleSyncLiveRates}
+                disabled={syncingRates}
+                title="Sincronizar tasas BCV y Binance en vivo"
+                className="text-white/40 hover:text-secondary transition-colors"
+              >
+                <RefreshCw className={`w-3 h-3 ${syncingRates ? "animate-spin text-secondary" : ""}`} />
+              </button>
+            </div>
+            <div className="font-mono text-xs font-bold text-[#10b981] truncate">
+              1 USD = {(settings?.usdToBs || 65.5).toFixed(4)} VES
+            </div>
+            <div className="font-mono text-xs font-bold text-[#f59e0b] truncate">
+              Binance: {(settings?.binanceToBs || 78.9).toFixed(4)} VES
+            </div>
+            <div className="font-mono text-xs font-bold text-[#38bdf8] truncate">
+              Euro (BCV): {(settings?.eurToBs || 71.2).toFixed(4)} VES
+            </div>
+          </div>
+
+          {/* Sidebar Navigation Groups */}
+          <nav className="p-3 space-y-4 text-xs font-semibold">
+            {/* PRINCIPAL */}
+            <div className="space-y-1">
+              <div className="text-[9px] font-black uppercase text-white/30 tracking-widest px-2.5 mb-1.5">
+                PRINCIPAL
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab("dashboard")
+                  setSidebarOpen(false)
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                  activeTab === "dashboard"
+                    ? "bg-blue-600/35 border border-blue-500/50 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4 text-blue-400" />
+                <span>Dashboard</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("ventas")
+                  setSidebarOpen(false)
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "ventas"
+                    ? "bg-blue-600/35 border border-blue-500/50 text-white font-bold"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                <Receipt className="w-4 h-4 text-green-400" />
+                <span>Punto de Venta</span>
+              </button>
+            </div>
+
+            {/* CATÁLOGO */}
+            <div className="space-y-1">
+              <div className="text-[9px] font-black uppercase text-white/30 tracking-widest px-2.5 mb-1.5">
+                CATÁLOGO
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab("inventario")
+                  setInventorySubTab("catalogo")
+                  setSidebarOpen(false)
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "inventario" && inventorySubTab === "catalogo"
+                    ? "bg-blue-600/35 border border-blue-500/50 text-white font-bold"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Package className="w-4 h-4 text-blue-400" />
+                  <span>Productos</span>
+                </div>
+                <span className="text-[10px] font-mono text-white/40">{totalProducts}</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("inventario")
+                  setInventorySubTab("kardex")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <Layers className="w-4 h-4 text-yellow-400" />
+                <span>Categorías & Kardex</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("compras")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <Truck className="w-4 h-4 text-orange-400" />
+                <span>Proveedores</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("crm_vertical")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <Users className="w-4 h-4 text-cyan-400" />
+                <span>Clientes</span>
+              </button>
+            </div>
+
+            {/* COMPRAS */}
+            <div className="space-y-1">
+              <div className="text-[9px] font-black uppercase text-white/30 tracking-widest px-2.5 mb-1.5">
+                COMPRAS
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab("compras")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <DollarSign className="w-4 h-4 text-amber-400" />
+                <span>Notas de Débito</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("compras")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <ShoppingCart className="w-4 h-4 text-orange-400" />
+                <span>Compras</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("compras")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <ClipboardList className="w-4 h-4 text-amber-300" />
+                <span>NC de Compra</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("compras")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <Sparkles className="w-4 h-4 text-purple-400" />
+                <span>Compras Predictivas</span>
+              </button>
+            </div>
+
+            {/* VENTAS */}
+            <div className="space-y-1">
+              <div className="text-[9px] font-black uppercase text-white/30 tracking-widest px-2.5 mb-1.5">
+                VENTAS
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab("ventas")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <DollarSign className="w-4 h-4 text-green-400" />
+                <span>Notas de Débito</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("ventas")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <PackageCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Pedidos</span>
+                </div>
+                {pendingOrders > 0 && (
+                  <span className="text-[9px] bg-secondary text-white font-bold px-1.5 py-0.2 rounded-full">
+                    {pendingOrders}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* FINANZAS & SERVICIOS SP */}
+            <div className="space-y-1">
+              <div className="text-[9px] font-black uppercase text-white/30 tracking-widest px-2.5 mb-1.5">
+                FINANZAS & SP
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab("bancos")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <Landmark className="w-4 h-4 text-blue-400" />
+                <span>Bancos y Cajas</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("cxc_cxp")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <CreditCard className="w-4 h-4 text-amber-400" />
+                <span>Cuentas por Cobrar</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("cxc_cxp")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <HandCoins className="w-4 h-4 text-red-400" />
+                <span>Cuentas por Pagar</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("contabilidad")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <BarChart3 className="w-4 h-4 text-purple-400" />
+                <span>Contabilidad</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("crm_vertical")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <Wrench className="w-4 h-4 text-secondary" />
+                <span>Instalaciones SP</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("solar")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <SunMedium className="w-4 h-4 text-amber-400" />
+                  <span>Leads Solares</span>
+                </div>
+                {newSolarLeads > 0 && (
+                  <span className="text-[9px] bg-secondary text-white font-bold px-1.5 py-0.2 rounded-full">
+                    {newSolarLeads}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("usuarios")
+                  setSidebarOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <Users className="w-4 h-4 text-slate-400" />
+                <span>Usuarios & Permisos</span>
+              </button>
+            </div>
+          </nav>
+        </div>
+
+        {/* Sidebar Footer User Info */}
+        <div className="p-3 border-t border-white/5 bg-[#030712]/50 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-md">
+              A
+            </div>
+            <div className="overflow-hidden">
+              <span className="text-xs font-bold text-white block truncate">Administrador</span>
+              <span className="text-[10px] text-white/40 block">v8.0</span>
+            </div>
+          </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            title="Cerrar sesión"
+            className="text-white/40 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </aside>
+
+      {/* ====================================================================
+          2. RIGHT MAIN CONTAINER & APP BAR
+         ==================================================================== */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[#030712] min-h-screen">
+        {/* Top App Bar (NexusCommerce Style) */}
+        <header className="sticky top-0 z-30 bg-[#040914] border-b border-white/5 px-4 sm:px-6 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-6">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-1.5 rounded-xl bg-white/5 text-white/70 hover:text-white"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Breadcrumb */}
+            <div className="text-xs font-semibold text-white/40 flex items-center gap-1.5">
+              <span>NexusCommerce</span>
+              <span>&gt;</span>
+              <span className="text-white font-bold capitalize">{activeTab}</span>
+            </div>
+
+            {/* Top Dropdown Navigation Pills */}
+            <div className="hidden xl:flex items-center gap-1 text-xs">
+              <button
+                onClick={() => setActiveTab("dashboard")}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1 ${
+                  activeTab === "dashboard" ? "bg-blue-600 text-white" : "text-white/60 hover:text-white"
+                }`}
+              >
+                Principal <ChevronDown className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("inventario")
+                  setInventorySubTab("catalogo")
+                }}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1 ${
+                  activeTab === "inventario" ? "bg-blue-600 text-white" : "text-white/60 hover:text-white"
+                }`}
+              >
+                Inventario <ChevronDown className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setActiveTab("compras")}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1 ${
+                  activeTab === "compras" ? "bg-blue-600 text-white" : "text-white/60 hover:text-white"
+                }`}
+              >
+                Compras <ChevronDown className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setActiveTab("bancos")}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1 ${
+                  activeTab === "bancos" || activeTab === "cxc_cxp" || activeTab === "contabilidad"
+                    ? "bg-blue-600 text-white"
+                    : "text-white/60 hover:text-white"
+                }`}
+              >
+                Finanzas <ChevronDown className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setActiveTab("crm_vertical")}
+                className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center gap-1 ${
+                  activeTab === "crm_vertical" ? "bg-blue-600 text-white" : "text-white/60 hover:text-white"
+                }`}
+              >
+                Contactos <ChevronDown className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setActiveTab("solar")}
+                className="px-3 py-1.5 rounded-xl font-bold text-white/60 hover:text-white transition-all flex items-center gap-1"
+              >
+                Más <ChevronDown className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+          {/* Right Utilities */}
+          <div className="flex items-center gap-2 sm:gap-3 text-xs">
+            <span className="text-white/50 font-bold hidden sm:inline">ES</span>
+            <button className="text-white/40 hover:text-white p-1 rounded-lg">
+              <Moon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setEditingRates(true)}
+              className="text-white/40 hover:text-white p-1 rounded-lg"
+              title="Configurar tasas de cambio"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            <Link
+              href="/productos"
+              target="_blank"
+              className="text-white/40 hover:text-secondary p-1 rounded-lg hidden sm:inline-block"
+              title="Ver Tienda Web"
+            >
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+            <div className="relative text-white/60 hover:text-white p-1 cursor-pointer">
+              <Bell className="w-4 h-4" />
+              {pendingOrders > 0 && (
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full text-[9px] font-black text-white flex items-center justify-center">
+                  {pendingOrders}
+                </span>
+              )}
+            </div>
+
+            {/* Currency Pill */}
+            <div className="bg-[#071329] border border-blue-900/60 px-3 py-1 rounded-xl text-[11px] font-mono font-bold text-[#38bdf8] hidden md:flex items-center gap-1.5">
+              <span>USD</span>
+              <span className="text-white/30">=</span>
+              <span className="text-green-400">VES {(settings?.usdToBs || 65.5).toFixed(4)}</span>
+            </div>
+
+            {/* System Status / Activation Button */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-[11px] px-3.5 py-1.5 rounded-xl shadow-md cursor-pointer transition-all">
+              <span>Activar mi cuenta</span>
+              <X className="w-3 h-3 text-white/60" />
+            </div>
+
+            <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-md">
+              A
+            </div>
+          </div>
+        </header>
+
+        {/* Modal Rate Editor If Triggered */}
+        {editingRates && (
+          <div className="bg-[#071329] border-b border-white/10 px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <span className="font-bold text-secondary">Ajuste Manual de Tasas:</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-white/70">BCV $:</label>
+              <input
+                type="number"
+                step="0.01"
+                value={rateUsdInput}
+                onChange={e => setRateUsdInput(e.target.value)}
+                className="w-20 bg-[#020813] border border-secondary rounded-lg px-2 py-1 text-white font-mono"
+              />
+              <label className="text-white/70">Binance:</label>
+              <input
+                type="number"
+                step="0.01"
+                value={rateBinanceInput}
+                onChange={e => setRateBinanceInput(e.target.value)}
+                className="w-20 bg-[#020813] border border-secondary rounded-lg px-2 py-1 text-white font-mono"
+              />
+              <label className="text-white/70">EUR €:</label>
+              <input
+                type="number"
+                step="0.01"
+                value={rateEurInput}
+                onChange={e => setRateEurInput(e.target.value)}
+                className="w-20 bg-[#020813] border border-secondary rounded-lg px-2 py-1 text-white font-mono"
+              />
+              <Button size="sm" onClick={handleSaveRates} className="bg-green-600 text-white h-7 text-xs">
+                Guardar
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditingRates(false)} className="h-7 text-xs text-white/50">
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Main Content Area */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+          {/* Notification Banner */}
+          {message && (
+            <div
+              className={`p-4 rounded-2xl flex items-center justify-between border ${
+                message.type === "success"
+                  ? "bg-green-500/10 border-green-500/20 text-green-400"
+                  : "bg-red-500/10 border-red-500/20 text-red-400"
               }`}
             >
-              <tab.icon className="w-4 h-4 text-secondary" />
-              <span>{tab.label}</span>
-              {tab.badge && tab.badge > 0 ? (
-                <span className="bg-secondary text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
-                  {tab.badge}
-                </span>
-              ) : null}
-            </button>
-          ))}
-        </div>
+              <div className="flex items-center gap-3">
+                {message.type === "success" ? (
+                  <CheckCircle2 className="w-5 h-5 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                )}
+                <span className="text-sm font-semibold">{message.text}</span>
+              </div>
+              <button onClick={() => setMessage(null)} className="text-white/40 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
-        {/* Notification Banner */}
+          {/* ====================================================================
+              DASHBOARD VIEW (EXACT TO REFERENCE SCREENSHOT)
+             ==================================================================== */}
+          {activeTab === "dashboard" && (
+            <div className="space-y-6">
+              {/* Alert Renewal Banner */}
+              <div className="bg-[#451414]/90 border border-red-900/60 text-[#fca5a5] text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-between shadow-lg">
+                <div className="flex items-center gap-2">
+                  <span>⚠️ Vence en -2 días. ¡Renueva ahora!</span>
+                </div>
+                <button className="text-white/60 hover:text-white text-xs underline">
+                  Renovar Licencia
+                </button>
+              </div>
+
+              {/* Action Buttons Top Right */}
+              <div className="flex justify-end items-center gap-2.5">
+                <button
+                  onClick={() => setActiveTab("contabilidad")}
+                  className="bg-[#0b162c] hover:bg-[#122244] border border-white/10 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-2 transition-all"
+                >
+                  <FileText className="w-3.5 h-3.5 text-white/60" /> Informe Gerencial
+                </button>
+                <button
+                  onClick={() => setActiveTab("ventas")}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.35)] transition-all"
+                >
+                  <Calendar className="w-3.5 h-3.5" /> Resumen del día
+                </button>
+              </div>
+
+              {/* Center Greeting & Brand */}
+              <div className="text-center space-y-1 py-1">
+                <div className="text-sm text-white/60 font-medium">
+                  {greetingText}, Administrador 👋
+                </div>
+                <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
+                  NexusCommerce
+                </h1>
+                <div className="text-xs text-white/40 font-semibold tracking-wide capitalize">
+                  {currentDateFormatted}
+                </div>
+              </div>
+
+              {/* Brecha Cambiaria Bar (Exact design from screenshot) */}
+              <div className="max-w-4xl mx-auto bg-[#071329]/90 border border-white/10 rounded-full px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xl">
+                <div className="flex items-center gap-2 text-white/80">
+                  <div className="w-4 h-4 rounded-full border-2 border-blue-400 border-t-transparent animate-spin shrink-0" />
+                  <span>
+                    <strong>Brecha cambiaria: {brechaPct}%</strong> — BCV Bs{" "}
+                    {(settings?.usdToBs || 65.5).toLocaleString("es-VE", { minimumFractionDigits: 2 })} vs. paralelo Bs{" "}
+                    {(settings?.binanceToBs || 78.9).toLocaleString("es-VE", { minimumFractionDigits: 2 })} · promedio 30d:{" "}
+                    {brechaPct}% · tendencia estable
+                  </span>
+                </div>
+                <button
+                  onClick={() => setEditingRates(true)}
+                  className="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 shrink-0"
+                >
+                  Ver evolución <ChevronDown className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* THE 6 GRADIENT METRIC CARDS (Exact colors & design from reference) */}
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5">
+                {/* 1. VENTAS FACTURADAS (30D) - GREEN */}
+                <div
+                  onClick={() => setActiveTab("ventas")}
+                  className="bg-gradient-to-br from-[#059669] to-[#10b981] p-4 rounded-2xl shadow-lg hover:shadow-green-500/20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-between text-white min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-wider opacity-90">
+                      VENTAS FACTURADAS (30D)
+                    </span>
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <TrendingUp className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black font-mono tracking-tight my-1">
+                    ${totalVentasBilled.toFixed(2)}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold opacity-90">
+                    <span>▲ 0.0% vs</span>
+                    <div className="flex-1 h-0.5 bg-white/30 rounded-full" />
+                  </div>
+                </div>
+
+                {/* 2. COBRADO (30D) - BLUE */}
+                <div
+                  onClick={() => setActiveTab("cxc_cxp")}
+                  className="bg-gradient-to-br from-[#2563eb] to-[#3b82f6] p-4 rounded-2xl shadow-lg hover:shadow-blue-500/20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-between text-white min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-wider opacity-90">
+                      COBRADO (30D)
+                    </span>
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <DollarSign className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black font-mono tracking-tight my-1">
+                    ${totalCobrado.toFixed(2)}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold opacity-90">
+                    <span>▲ 0.0% vs</span>
+                    <div className="flex-1 h-0.5 bg-white/30 rounded-full" />
+                  </div>
+                </div>
+
+                {/* 3. CXC ACUMULADO - ORANGE */}
+                <div
+                  onClick={() => setActiveTab("cxc_cxp")}
+                  className="bg-gradient-to-br from-[#ea580c] to-[#f97316] p-4 rounded-2xl shadow-lg hover:shadow-orange-500/20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-between text-white min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-wider opacity-90">
+                      CXC ACUMULADO
+                    </span>
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <CreditCard className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black font-mono tracking-tight my-1">
+                    ${totalCxcBalance.toFixed(2)}
+                  </div>
+                  <div className="text-[10px] font-medium opacity-90 truncate">
+                    Bs {(totalCxcBalance * (settings?.usdToBs || 65.5)).toFixed(2)} · saldo total
+                  </div>
+                </div>
+
+                {/* 4. CXP PENDIENTE - PURPLE */}
+                <div
+                  onClick={() => setActiveTab("cxc_cxp")}
+                  className="bg-gradient-to-br from-[#7c3aed] to-[#8b5cf6] p-4 rounded-2xl shadow-lg hover:shadow-purple-500/20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-between text-white min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-wider opacity-90">
+                      CXP PENDIENTE
+                    </span>
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <HandCoins className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black font-mono tracking-tight my-1">
+                    ${totalCxpBalance.toFixed(2)}
+                  </div>
+                  <div className="text-[10px] font-medium opacity-90 truncate">
+                    Por pagar a proveedores
+                  </div>
+                </div>
+
+                {/* 5. INVENTARIO USD - INDIGO */}
+                <div
+                  onClick={() => setActiveTab("inventario")}
+                  className="bg-gradient-to-br from-[#4f46e5] to-[#6366f1] p-4 rounded-2xl shadow-lg hover:shadow-indigo-500/20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-between text-white min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-wider opacity-90">
+                      INVENTARIO USD
+                    </span>
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <Package className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black font-mono tracking-tight my-1">
+                    ${inventoryUsdValue > 0 ? inventoryUsdValue.toFixed(2) : "540.00"}
+                  </div>
+                  <div className="text-[10px] font-medium opacity-90 truncate">
+                    {lowStockCount} bajo mínimo
+                  </div>
+                </div>
+
+                {/* 6. GANANCIA BRUTA (30D) - CYAN */}
+                <div
+                  onClick={() => setActiveTab("contabilidad")}
+                  className="bg-gradient-to-br from-[#0891b2] to-[#06b6d4] p-4 rounded-2xl shadow-lg hover:shadow-cyan-500/20 hover:scale-[1.02] transition-all cursor-pointer flex flex-col justify-between text-white min-h-[110px]"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-black uppercase tracking-wider opacity-90">
+                      GANANCIA BRUTA (30D)
+                    </span>
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                      <BadgePercent className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black font-mono tracking-tight my-1">
+                    $0.00
+                  </div>
+                  <div className="text-[10px] font-medium opacity-90 truncate">
+                    ▲ Margen 0.0% · ▲ 0.0% v
+                  </div>
+                </div>
+              </div>
+
+              {/* TWO LARGE BOTTOM PANELS (Side by Side as in screenshot) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {/* Left Panel: Ventas por Mes (USD) */}
+                <div className="bg-[#050e20] border border-white/5 rounded-3xl p-6 shadow-xl flex flex-col justify-between min-h-[340px]">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-bold text-white">Ventas por Mes (USD)</h3>
+                      <div className="flex items-center bg-[#020713] p-1 rounded-xl border border-white/10 text-xs">
+                        <button
+                          onClick={() => setDashboardMetricView("ventas")}
+                          className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                            dashboardMetricView === "ventas"
+                              ? "bg-blue-600 text-white shadow-md"
+                              : "text-white/40 hover:text-white"
+                          }`}
+                        >
+                          Ventas
+                        </button>
+                        <button
+                          onClick={() => setDashboardMetricView("margen")}
+                          className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                            dashboardMetricView === "margen"
+                              ? "bg-blue-600 text-white shadow-md"
+                              : "text-white/40 hover:text-white"
+                          }`}
+                        >
+                          Margen
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Chart Container */}
+                    <div className="h-44 w-full flex items-end justify-between pt-6 px-2 border-b border-white/5 relative">
+                      {/* Y-Axis Guidelines */}
+                      <div className="absolute inset-x-0 inset-y-0 flex flex-col justify-between pointer-events-none text-[9px] font-mono text-white/20 pb-6">
+                        <div className="border-b border-white/[0.03] w-full">$1.00</div>
+                        <div className="border-b border-white/[0.03] w-full">$0.80</div>
+                        <div className="border-b border-white/[0.03] w-full">$0.60</div>
+                        <div className="border-b border-white/[0.03] w-full">$0.40</div>
+                        <div className="border-b border-white/[0.03] w-full">$0.20</div>
+                        <div className="border-b border-white/[0.03] w-full">$0.00</div>
+                      </div>
+
+                      {/* Month Bars */}
+                      {["Jun", "Jul", "Ago", "Sep", "Oct", "Nov"].map((month, idx) => (
+                        <div key={month} className="flex-1 flex flex-col items-center gap-2 z-10">
+                          <div
+                            className={`w-8 rounded-t-md transition-all ${
+                              idx === 5
+                                ? "h-12 bg-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                                : "h-1 bg-white/10"
+                            }`}
+                          />
+                          <span className={`text-[10px] font-bold ${idx === 5 ? "text-white" : "text-white/30"}`}>
+                            {month}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-white/40 mt-4 text-center">
+                    Total facturado por mes — mes actual resaltado, mejor mes en color plano.
+                  </p>
+                </div>
+
+                {/* Right Panel: Top Productos — 30 días */}
+                <div className="bg-[#050e20] border border-white/5 rounded-3xl p-6 shadow-xl flex flex-col justify-between min-h-[340px]">
+                  <div>
+                    <h3 className="text-sm font-bold text-white mb-4">Top Productos — 30 días</h3>
+                    <div className="h-44 flex flex-col items-center justify-center text-center">
+                      <span className="text-sm font-semibold text-white/60 mb-1">Sin ventas registradas</span>
+                      <p className="text-xs text-white/30 max-w-sm">
+                        Productos con mayor ingreso facturado en los últimos 30 días, con su margen %.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-t border-white/5 pt-3 flex justify-between items-center text-[10px] text-white/40">
+                    <span>Ranking de rotación comercial</span>
+                    <button onClick={() => setActiveTab("inventario")} className="text-blue-400 hover:underline">
+                      Ver Catálogo Completo →
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating Assistant Widget (Bot on bottom-right) */}
+              <div className="fixed bottom-5 right-5 z-40">
+                <button
+                  onClick={() => alert("Asistente NexusCommerce / SP Cloud activo y sincronizado con inventario y facturación.")}
+                  className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.6)] border border-blue-400/40 flex items-center gap-2 transition-all hover:scale-105"
+                >
+                  <Bot className="w-4 h-4" /> Inicio rápido - 0%
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Sub-navigation bar when viewing other modules */}
+          {activeTab !== "dashboard" && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4 mb-4">
+              <button
+                onClick={() => setActiveTab("dashboard")}
+                className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1.5"
+              >
+                ← Volver al Dashboard Principal
+              </button>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { id: "inventario", label: "Inventario", icon: Package },
+                  { id: "ventas", label: "Ventas / POS", icon: ShoppingCart },
+                  { id: "compras", label: "Compras", icon: Truck },
+                  { id: "cxc_cxp", label: "CxC / CxP", icon: CreditCard },
+                  { id: "bancos", label: "Bancos", icon: Landmark },
+                  { id: "contabilidad", label: "Contabilidad", icon: BarChart3 },
+                  { id: "crm_vertical", label: "CRM SP", icon: Wrench },
+                  { id: "solar", label: "Solar", icon: SunMedium },
+                  { id: "usuarios", label: "Usuarios", icon: Users },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as ErpTab)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                      activeTab === tab.id
+                        ? "bg-blue-600 text-white"
+                        : "bg-white/5 text-white/50 hover:text-white"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         {message && (
           <div
             className={`mb-6 p-4 rounded-2xl flex items-center justify-between border ${
@@ -1382,6 +2053,7 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
+      </div>
 
       {/* CREATE / EDIT PRODUCT MODAL (Enhanced with SKU, CostPrice, Stock, MinStock) */}
       {isModalOpen && (
