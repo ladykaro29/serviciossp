@@ -43,6 +43,8 @@ import {
   Users,
   Coins,
   History,
+  Boxes,
+  Gift,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SalesAndFinanceModules } from "@/components/erp/SalesAndFinanceModules"
@@ -63,6 +65,8 @@ interface ProductItem {
   description: string | null
   features?: string | null
   variants?: string | null
+  isBundle?: boolean
+  bundleItems?: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -188,12 +192,23 @@ export default function AdminDashboard() {
     description: "",
     featuresList: [] as string[],
     variantsList: [] as Array<{ name: string; price: number; stock: number }>,
+    isBundle: false,
+    bundleItemsList: [] as Array<{
+      productId?: string
+      name: string
+      quantity: number
+      unitCost?: number
+      unitPrice?: number
+    }>,
     isActive: true,
   })
   const [newFeatureInput, setNewFeatureInput] = useState("")
   const [newVariantName, setNewVariantName] = useState("")
   const [newVariantPrice, setNewVariantPrice] = useState("")
   const [newVariantStock, setNewVariantStock] = useState("10")
+  const [selectedBundleProductId, setSelectedBundleProductId] = useState("")
+  const [bundleCustomItemName, setBundleCustomItemName] = useState("")
+  const [bundleItemQty, setBundleItemQty] = useState("1")
   const [uploadingImage, setUploadingImage] = useState(false)
 
   const [productToDelete, setProductToDelete] = useState<ProductItem | null>(null)
@@ -420,12 +435,17 @@ export default function AdminDashboard() {
       description: "",
       featuresList: [],
       variantsList: [],
+      isBundle: false,
+      bundleItemsList: [],
       isActive: true,
     })
     setNewFeatureInput("")
     setNewVariantName("")
     setNewVariantPrice("")
     setNewVariantStock("10")
+    setSelectedBundleProductId("")
+    setBundleCustomItemName("")
+    setBundleItemQty("1")
     setIsModalOpen(true)
   }
 
@@ -433,6 +453,7 @@ export default function AdminDashboard() {
     setModalMode("edit")
     let parsedFeatures: string[] = []
     let parsedVariants: Array<{ name: string; price: number; stock: number }> = []
+    let parsedBundleItems: Array<{ productId?: string; name: string; quantity: number; unitCost?: number; unitPrice?: number }> = []
     try {
       parsedFeatures = JSON.parse(product.features || "[]")
       if (!Array.isArray(parsedFeatures)) parsedFeatures = []
@@ -444,6 +465,12 @@ export default function AdminDashboard() {
       if (!Array.isArray(parsedVariants)) parsedVariants = []
     } catch {
       parsedVariants = []
+    }
+    try {
+      parsedBundleItems = JSON.parse(product.bundleItems || "[]")
+      if (!Array.isArray(parsedBundleItems)) parsedBundleItems = []
+    } catch {
+      parsedBundleItems = []
     }
 
     setFormData({
@@ -461,12 +488,17 @@ export default function AdminDashboard() {
       description: product.description || "",
       featuresList: parsedFeatures,
       variantsList: parsedVariants,
+      isBundle: product.isBundle ?? false,
+      bundleItemsList: parsedBundleItems,
       isActive: product.isActive,
     })
     setNewFeatureInput("")
     setNewVariantName("")
     setNewVariantPrice(String(product.price || 0))
     setNewVariantStock(String(product.stock ?? 10))
+    setSelectedBundleProductId("")
+    setBundleCustomItemName("")
+    setBundleItemQty("1")
     setIsModalOpen(true)
   }
 
@@ -626,6 +658,8 @@ export default function AdminDashboard() {
         ...formData,
         features: JSON.stringify(formData.featuresList || []),
         variants: JSON.stringify(formData.variantsList || []),
+        isBundle: formData.isBundle,
+        bundleItems: JSON.stringify(formData.bundleItemsList || []),
       }
       const res = await fetch(url, {
         method,
@@ -1069,8 +1103,13 @@ export default function AdminDashboard() {
                                     {product.sku || "SP"}
                                   </span>
                                   <div>
-                                    <div className="font-bold text-white line-clamp-1 max-w-xs">
-                                      {product.name}
+                                    <div className="font-bold text-white line-clamp-1 max-w-xs flex items-center gap-2">
+                                      <span>{product.name}</span>
+                                      {product.isBundle && (
+                                        <span className="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded font-black uppercase tracking-wider shrink-0 flex items-center gap-1">
+                                          <Gift className="w-3 h-3 text-purple-400" /> KIT
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="text-[10px] text-white/40">{product.brand || "SP"}</div>
                                   </div>
@@ -1677,6 +1716,206 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Product Bundle / Kit Component (BOM) */}
+              <div
+                className={`border rounded-2xl p-4 space-y-4 transition-all ${
+                  formData.isBundle
+                    ? "bg-purple-950/20 border-purple-500/40 shadow-lg shadow-purple-950/30"
+                    : "bg-white/[0.02] border-white/10"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Gift className="w-4 h-4 text-purple-400" />
+                      <label className="text-xs font-black uppercase tracking-wider text-purple-300">
+                        ¿Es un Producto Compuesto / Kit / Combo?
+                      </label>
+                    </div>
+                    <p className="text-[10px] text-white/50 mt-0.5">
+                      Activa esta opción para kits que incluyen múltiples productos y accesorios (ej: Kit Solar, Kit CCTV, etc.)
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, isBundle: !prev.isBundle }))}
+                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all border ${
+                      formData.isBundle
+                        ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-900/40"
+                        : "bg-white/5 text-white/50 border-white/10 hover:text-white"
+                    }`}
+                  >
+                    {formData.isBundle ? "✓ Sí, es un Kit / Combo" : "Producto Simple"}
+                  </button>
+                </div>
+
+                {formData.isBundle && (
+                  <div className="space-y-4 pt-3 border-t border-purple-500/20">
+                    <div className="text-[11px] font-black uppercase tracking-wider text-purple-300 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Boxes className="w-3.5 h-3.5" /> Componentes Incluidos en este Kit ({formData.bundleItemsList.length})
+                      </span>
+                      {formData.bundleItemsList.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const totalCost = formData.bundleItemsList.reduce(
+                              (sum, item) => sum + (Number(item.unitCost) || 0) * (Number(item.quantity) || 1),
+                              0
+                            )
+                            const totalPrice = formData.bundleItemsList.reduce(
+                              (sum, item) => sum + (Number(item.unitPrice) || 0) * (Number(item.quantity) || 1),
+                              0
+                            )
+                            setFormData(prev => ({
+                              ...prev,
+                              costPrice: totalCost > 0 ? Number(totalCost.toFixed(2)) : prev.costPrice,
+                              price: totalPrice > 0 ? Number(totalPrice.toFixed(2)) : prev.price,
+                            }))
+                            showMessage("success", `Precios auto-calculados: Costo $${totalCost.toFixed(2)} | Venta $${totalPrice.toFixed(2)}`)
+                          }}
+                          className="text-[10px] bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 px-2.5 py-1 rounded-lg transition-all"
+                        >
+                          ⚡ Auto-calcular Costo y Precio desde componentes
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Add Component to Kit */}
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-[#020813] p-3 rounded-xl border border-white/10">
+                      <div className="sm:col-span-5">
+                        <label className="block text-[9px] font-black uppercase tracking-wider text-white/40 mb-1">
+                          Elegir del Inventario
+                        </label>
+                        <select
+                          value={selectedBundleProductId}
+                          onChange={e => {
+                            setSelectedBundleProductId(e.target.value)
+                            const found = products.find(p => p.id === e.target.value)
+                            if (found) {
+                              setBundleCustomItemName(found.name)
+                            }
+                          }}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs"
+                        >
+                          <option value="" className="bg-[#041124]">-- Seleccionar producto --</option>
+                          {products
+                            .filter(p => p.id !== formData.id)
+                            .map(p => (
+                              <option key={p.id} value={p.id} className="bg-[#041124]">
+                                {p.name} (${Number(p.price || 0).toFixed(2)})
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-4">
+                        <label className="block text-[9px] font-black uppercase tracking-wider text-white/40 mb-1">
+                          O Nombre Personalizado / Accesorio
+                        </label>
+                        <input
+                          type="text"
+                          value={bundleCustomItemName}
+                          onChange={e => setBundleCustomItemName(e.target.value)}
+                          placeholder="Ej: Cable Solar 10AWG (20m)"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white text-xs"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-1">
+                        <label className="block text-[9px] font-black uppercase tracking-wider text-white/40 mb-1">
+                          Cant.
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={bundleItemQty}
+                          onChange={e => setBundleItemQty(e.target.value)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl p-2 text-white font-mono text-xs text-center"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2 flex items-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nameToAdd = bundleCustomItemName.trim()
+                            if (!nameToAdd) return
+                            const matchedProd = products.find(p => p.id === selectedBundleProductId)
+                            const qty = parseInt(bundleItemQty, 10) || 1
+                            const unitCost = matchedProd?.costPrice || 0
+                            const unitPrice = matchedProd?.price || 0
+
+                            setFormData(prev => ({
+                              ...prev,
+                              bundleItemsList: [
+                                ...prev.bundleItemsList,
+                                {
+                                  productId: selectedBundleProductId || undefined,
+                                  name: nameToAdd,
+                                  quantity: qty,
+                                  unitCost,
+                                  unitPrice,
+                                },
+                              ],
+                            }))
+                            setSelectedBundleProductId("")
+                            setBundleCustomItemName("")
+                            setBundleItemQty("1")
+                          }}
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl p-2 text-xs uppercase tracking-wider transition-all"
+                        >
+                          + Añadir
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Table / List of Added Components */}
+                    {formData.bundleItemsList.length > 0 ? (
+                      <div className="space-y-1.5">
+                        {formData.bundleItemsList.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between bg-[#020813] border border-purple-500/20 px-3.5 py-2 rounded-xl text-xs"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-6 h-6 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center font-mono font-black text-purple-300 text-xs">
+                                x{item.quantity}
+                              </span>
+                              <div>
+                                <span className="font-bold text-white">{item.name}</span>
+                                {item.unitPrice !== undefined && item.unitPrice > 0 && (
+                                  <span className="text-[10px] text-white/40 block">
+                                    Ref: ${Number(item.unitPrice).toFixed(2)} c/u · Subtotal: ${(Number(item.unitPrice) * item.quantity).toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormData(prev => ({
+                                  ...prev,
+                                  bundleItemsList: prev.bundleItemsList.filter((_, i) => i !== idx),
+                                }))
+                              }
+                              className="text-red-400 hover:text-red-300 p-1"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-xs text-white/40 italic bg-white/[0.01] rounded-xl border border-dashed border-white/10">
+                        Aún no has agregado componentes a este kit. Selecciona productos arriba para armar el paquete.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

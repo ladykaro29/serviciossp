@@ -29,6 +29,8 @@ export async function PUT(
       description,
       features,
       variants,
+      isBundle,
+      bundleItems,
       image,
       isActive,
     } = body
@@ -51,6 +53,12 @@ export async function PUT(
           ? variants
           : JSON.stringify(Array.isArray(variants) ? variants : [])
         : undefined
+    const bundleItemsStr =
+      bundleItems !== undefined
+        ? typeof bundleItems === "string"
+          ? bundleItems
+          : JSON.stringify(Array.isArray(bundleItems) ? bundleItems : [])
+        : undefined
 
     const updatedProduct = await prisma.product.update({
       where: { id },
@@ -67,6 +75,8 @@ export async function PUT(
         ...(description !== undefined && { description }),
         ...(featuresStr !== undefined && { features: featuresStr }),
         ...(variantsStr !== undefined && { variants: variantsStr }),
+        ...(isBundle !== undefined && { isBundle: Boolean(isBundle) }),
+        ...(bundleItemsStr !== undefined && { bundleItems: bundleItemsStr }),
         ...(image !== undefined && { image }),
         ...(isActive !== undefined && { isActive }),
       },

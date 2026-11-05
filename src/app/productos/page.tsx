@@ -16,6 +16,8 @@ import {
   Layers,
   ShieldCheck,
   Tag,
+  Gift,
+  Boxes,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { products as initialProducts } from "@/lib/data/products"
@@ -270,6 +272,8 @@ export default function ProductosPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
               {filteredProducts.map(product => {
                 const variantsList = parseJsonArray(product.variants)
+                const bundleList = parseJsonArray(product.bundleItems)
+                const isKit = Boolean(product.isBundle || bundleList.length > 0)
                 const featuresList = getEffectiveFeatures(product)
                 const hasPrice = product.price && Number(product.price) > 0
                 const priceNum = Number(product.price) || 0
@@ -324,16 +328,23 @@ export default function ProductosPage() {
                         {product.brand || "SP"}
                       </div>
 
-                      {/* Category & Variants Count */}
-                      <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center z-20">
+                      {/* Category & Variants/Kit Count */}
+                      <div className="absolute bottom-6 left-6 right-6 flex flex-wrap justify-between items-center gap-1.5 z-20">
                         <span className="text-[9px] bg-secondary/10 text-secondary font-black px-3.5 py-1.5 rounded-xl uppercase tracking-widest border border-secondary/20">
                           {product.category}
                         </span>
-                        {variantsList.length > 0 && (
-                          <span className="text-[9px] bg-purple-500/20 text-purple-300 font-black px-3 py-1.5 rounded-xl uppercase tracking-wider border border-purple-500/30 flex items-center gap-1">
-                            <Layers className="w-3 h-3" /> {variantsList.length} variantes
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {isKit && (
+                            <span className="text-[9px] bg-purple-500/25 text-purple-200 font-black px-3 py-1.5 rounded-xl uppercase tracking-wider border border-purple-500/40 flex items-center gap-1 shadow-md">
+                              <Gift className="w-3 h-3 text-purple-300" /> Kit {bundleList.length > 0 ? `(${bundleList.length})` : ""}
+                            </span>
+                          )}
+                          {variantsList.length > 0 && (
+                            <span className="text-[9px] bg-blue-500/20 text-blue-300 font-black px-3 py-1.5 rounded-xl uppercase tracking-wider border border-blue-500/30 flex items-center gap-1">
+                              <Layers className="w-3 h-3" /> {variantsList.length} var.
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -453,6 +464,8 @@ export default function ProductosPage() {
          ==================================================================== */}
       {selectedProduct && (() => {
         const variantsList = parseJsonArray(selectedProduct.variants)
+        const bundleList = parseJsonArray(selectedProduct.bundleItems)
+        const isKit = Boolean(selectedProduct.isBundle || bundleList.length > 0)
         const featuresList = getEffectiveFeatures(selectedProduct)
         const activeVariant = variantsList[selectedVariantIdx] || null
         const effectivePrice = activeVariant?.price !== undefined && Number(activeVariant.price) > 0
@@ -517,6 +530,11 @@ export default function ProductosPage() {
                       {selectedProduct.brand && (
                         <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-white/10 text-white/80">
                           Marca: {selectedProduct.brand}
+                        </span>
+                      )}
+                      {isKit && (
+                        <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center gap-1.5 shadow-md">
+                          <Gift className="w-3.5 h-3.5 text-purple-400" /> Kit / Combo Compuesto
                         </span>
                       )}
                     </div>
@@ -599,6 +617,31 @@ export default function ProductosPage() {
                           `Equipo de alto rendimiento perteneciente a la línea de ${selectedProduct.category}, seleccionado bajo estándares de ingeniería de Servicios y Suministros SP.`}
                       </p>
                     </div>
+
+                    {/* Kit / Bundle Included Components List */}
+                    {isKit && bundleList.length > 0 && (
+                      <div className="bg-purple-950/20 border border-purple-500/30 rounded-2xl p-4 space-y-2.5">
+                        <div className="flex items-center gap-2">
+                          <Gift className="w-4 h-4 text-purple-400" />
+                          <h4 className="text-xs font-black uppercase tracking-wider text-purple-200">
+                            ¿Qué incluye este Kit / Combo? ({bundleList.length} equipos/componentes)
+                          </h4>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {bundleList.map((item: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2.5 bg-[#020813]/90 border border-purple-500/20 px-3 py-2 rounded-xl text-xs"
+                            >
+                              <span className="w-6 h-6 rounded-lg bg-purple-500/25 text-purple-300 font-mono font-black text-xs flex items-center justify-center shrink-0">
+                                x{item.quantity || 1}
+                              </span>
+                              <span className="font-bold text-white leading-tight">{item.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Technical Characteristics List */}
                     <div className="space-y-2">

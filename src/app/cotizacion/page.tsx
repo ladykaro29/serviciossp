@@ -21,6 +21,8 @@ import {
   Sparkles,
   PackagePlus,
   Download,
+  Gift,
+  Boxes,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -687,8 +689,13 @@ export default function CotizacionPage() {
                         </div>
 
                         <div className="flex-1 text-center sm:text-left">
-                          <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] mb-0.5">
-                            {item.brand || "SP"} · {item.category}
+                          <p className="text-[10px] font-black text-secondary uppercase tracking-[0.2em] mb-0.5 flex items-center justify-center sm:justify-start gap-1.5">
+                            <span>{item.brand || "SP"} · {item.category}</span>
+                            {(item as any).isBundle && (
+                              <span className="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider">
+                                KIT / COMBO
+                              </span>
+                            )}
                           </p>
                           <h3 className="font-black text-foreground text-base leading-snug mb-1">
                             {item.name}
@@ -805,8 +812,15 @@ export default function CotizacionPage() {
                       className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/15 transition-all"
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="text-[10px] font-black text-secondary uppercase truncate">
-                          {prod.category}
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="text-[10px] font-black text-secondary uppercase truncate">
+                            {prod.category}
+                          </span>
+                          {prod.isBundle && (
+                            <span className="text-[9px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1.5 py-0.2 rounded font-black uppercase tracking-wider shrink-0">
+                              KIT
+                            </span>
+                          )}
                         </div>
                         <div className="text-xs font-bold text-white truncate" title={prod.name}>
                           {prod.name}

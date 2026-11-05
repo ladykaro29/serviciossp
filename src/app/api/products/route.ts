@@ -61,6 +61,8 @@ export async function POST(request: Request) {
       description,
       features,
       variants,
+      isBundle,
+      bundleItems,
       image,
       isActive,
     } = body
@@ -75,6 +77,9 @@ export async function POST(request: Request) {
       typeof features === "string" ? features : JSON.stringify(Array.isArray(features) ? features : [])
     const variantsStr =
       typeof variants === "string" ? variants : JSON.stringify(Array.isArray(variants) ? variants : [])
+    const isBundleVal = Boolean(isBundle)
+    const bundleItemsStr =
+      typeof bundleItems === "string" ? bundleItems : JSON.stringify(Array.isArray(bundleItems) ? bundleItems : [])
 
     const newProduct = await prisma.product.create({
       data: {
@@ -90,6 +95,8 @@ export async function POST(request: Request) {
         description: description || "",
         features: featuresStr,
         variants: variantsStr,
+        isBundle: isBundleVal,
+        bundleItems: bundleItemsStr,
         image: image || "/placeholder-product.png",
         isActive: isActive ?? true,
       },

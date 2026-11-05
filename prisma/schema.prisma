@@ -47,6 +47,8 @@ model Product {
   description String?  @default("")
   features    String?  @default("[]") // JSON array of strings or { label, value }
   variants    String?  @default("[]") // JSON array of { name, price, stock, sku }
+  isBundle    Boolean  @default(false)
+  bundleItems String?  @default("[]") // JSON array of { productId, name, quantity, unitCost, unitPrice }
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

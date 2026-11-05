@@ -32,14 +32,14 @@ export default function middleware(req: NextRequest & { nextauth?: any }) {
   return NextResponse.next()
 }
 
-export const config = { 
+export const config = {
   matcher: [
-    "/CALCULADORA", 
-    "/Calculadora", 
-    "/PRODUCTOS", 
-    "/Productos", 
-    "/SERVICIOS", 
-    "/Servicios", 
+    "/CALCULADORA",
+    "/Calculadora",
+    "/PRODUCTOS",
+    "/Productos",
+    "/SERVICIOS",
+    "/Servicios",
     "/admin/:path*"
-  ] 
+  ]
 }
