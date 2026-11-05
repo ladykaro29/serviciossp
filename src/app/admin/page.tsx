@@ -61,6 +61,8 @@ interface ProductItem {
   brand: string | null
   image: string | null
   description: string | null
+  features?: string | null
+  variants?: string | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -120,9 +122,10 @@ export default function AdminDashboard() {
   const [inventorySubTab, setInventorySubTab] = useState<"catalogo" | "kardex">("catalogo")
 
   // Multi-currency State
-  const [displayCurrency, setDisplayCurrency] = useState<"USD" | "BS" | "EUR">("USD")
+  const [displayCurrency, setDisplayCurrency] = useState<"USD" | "BS" | "BINANCE" | "EUR">("USD")
   const [settings, setSettings] = useState<any>({
     usdToBs: 65.5,
+    binanceToBs: 78.9,
     eurToBs: 71.2,
     ivaPercent: 16,
     igtfPercent: 3,
@@ -131,7 +134,9 @@ export default function AdminDashboard() {
     defaultFrequencyDays: 14,
   })
   const [editingRates, setEditingRates] = useState(false)
+  const [syncingRates, setSyncingRates] = useState(false)
   const [rateUsdInput, setRateUsdInput] = useState("65.50")
+  const [rateBinanceInput, setRateBinanceInput] = useState("78.90")
   const [rateEurInput, setRateEurInput] = useState("71.20")
 
   // Products State
@@ -181,8 +186,15 @@ export default function AdminDashboard() {
     brand: "",
     image: "",
     description: "",
+    featuresList: [] as string[],
+    variantsList: [] as Array<{ name: string; price: number; stock: number }>,
     isActive: true,
   })
+  const [newFeatureInput, setNewFeatureInput] = useState("")
+  const [newVariantName, setNewVariantName] = useState("")
+  const [newVariantPrice, setNewVariantPrice] = useState("")
+  const [newVariantStock, setNewVariantStock] = useState("10")
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   const [productToDelete, setProductToDelete] = useState<ProductItem | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -196,6 +208,12 @@ export default function AdminDashboard() {
     const val = Number(usdAmount) || 0
     if (displayCurrency === "BS") {
       return `Bs. ${(val * (settings?.usdToBs || 65.5)).toLocaleString("es-VE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    }
+    if (displayCurrency === "BINANCE") {
+      return `Bs. ${(val * (settings?.binanceToBs || 78.9)).toLocaleString("es-VE", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`
@@ -252,14 +270,15 @@ export default function AdminDashboard() {
     }
   }
 
-  const fetchErpData = async () => {
+  const fetchErpData = async (syncRates = false) => {
     try {
-      const res = await fetch("/api/erp")
+      const res = await fetch(`/api/erp${syncRates ? "?syncRates=true" : ""}`)
       if (res.ok) {
         const data = await res.json()
         if (data.settings) {
           setSettings(data.settings)
           setRateUsdInput(String(data.settings.usdToBs))
+          setRateBinanceInput(String(data.settings.binanceToBs || 78.9))
           setRateEurInput(String(data.settings.eurToBs))
         }
         setCustomers(data.customers || [])
@@ -279,31 +298,61 @@ export default function AdminDashboard() {
   }
 
   const handleRefreshAll = async () => {
-    await Promise.all([fetchProducts(), fetchOrders(), fetchSolarLeads(), fetchErpData()])
+    await Promise.all([fetchProducts(), fetchOrders(), fetchSolarLeads(), fetchErpData(false)])
   }
 
   useEffect(() => {
     if (status === "authenticated") {
-      handleRefreshAll()
+      Promise.all([fetchProducts(), fetchOrders(), fetchSolarLeads(), fetchErpData(true)])
     }
   }, [status])
 
+  const handleSyncLiveRates = async () => {
+    setSyncingRates(true)
+    try {
+      const res = await fetch("/api/erp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "SYNC_LIVE_RATES" }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.settings) {
+          setSettings(data.settings)
+          setRateUsdInput(String(data.settings.usdToBs))
+          setRateBinanceInput(String(data.settings.binanceToBs || 78.9))
+          setRateEurInput(String(data.settings.eurToBs))
+          showMessage(
+            "success",
+            `Tasas sincronizadas en vivo: BCV = Bs. ${data.settings.usdToBs.toFixed(2)} | Binance = Bs. ${(data.settings.binanceToBs || 78.9).toFixed(2)} | EUR = Bs. ${data.settings.eurToBs.toFixed(2)}`
+          )
+        }
+      }
+    } finally {
+      setSyncingRates(false)
+    }
+  }
+
   const handleSaveRates = async () => {
     const usdToBs = parseFloat(rateUsdInput) || 65.5
+    const binanceToBs = parseFloat(rateBinanceInput) || 78.9
     const eurToBs = parseFloat(rateEurInput) || 71.2
     const res = await fetch("/api/erp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "UPDATE_SETTINGS",
-        payload: { usdToBs, eurToBs },
+        payload: { usdToBs, binanceToBs, eurToBs },
       }),
     })
     if (res.ok) {
       const data = await res.json()
       setSettings(data.settings)
       setEditingRates(false)
-      showMessage("success", `Tasas Multi-moneda actualizadas: 1 USD = Bs. ${usdToBs.toFixed(2)} | 1 EUR = Bs. ${eurToBs.toFixed(2)}`)
+      showMessage(
+        "success",
+        `Tasas Multi-moneda guardadas: BCV = Bs. ${usdToBs.toFixed(2)} | Binance = Bs. ${binanceToBs.toFixed(2)} | EUR = Bs. ${eurToBs.toFixed(2)}`
+      )
     }
   }
 
@@ -369,13 +418,34 @@ export default function AdminDashboard() {
       brand: "",
       image: "/placeholder-product.png",
       description: "",
+      featuresList: [],
+      variantsList: [],
       isActive: true,
     })
+    setNewFeatureInput("")
+    setNewVariantName("")
+    setNewVariantPrice("")
+    setNewVariantStock("10")
     setIsModalOpen(true)
   }
 
   const handleOpenEdit = (product: ProductItem) => {
     setModalMode("edit")
+    let parsedFeatures: string[] = []
+    let parsedVariants: Array<{ name: string; price: number; stock: number }> = []
+    try {
+      parsedFeatures = JSON.parse(product.features || "[]")
+      if (!Array.isArray(parsedFeatures)) parsedFeatures = []
+    } catch {
+      parsedFeatures = []
+    }
+    try {
+      parsedVariants = JSON.parse(product.variants || "[]")
+      if (!Array.isArray(parsedVariants)) parsedVariants = []
+    } catch {
+      parsedVariants = []
+    }
+
     setFormData({
       id: product.id,
       sku: product.sku || "",
@@ -389,9 +459,59 @@ export default function AdminDashboard() {
       brand: product.brand || "",
       image: product.image || "/placeholder-product.png",
       description: product.description || "",
+      featuresList: parsedFeatures,
+      variantsList: parsedVariants,
       isActive: product.isActive,
     })
+    setNewFeatureInput("")
+    setNewVariantName("")
+    setNewVariantPrice(String(product.price || 0))
+    setNewVariantStock(String(product.stock ?? 10))
     setIsModalOpen(true)
+  }
+
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingImage(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: fd,
+      })
+      const data = await res.json()
+      if (res.ok && data.url) {
+        setFormData(prev => ({ ...prev, image: data.url }))
+        showMessage("success", "Imagen subida y vinculada a la ficha del producto.")
+      } else {
+        showMessage("error", data.error || "Error al subir la imagen.")
+      }
+    } catch {
+      showMessage("error", "Error de red al subir la imagen.")
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const handleAutoGenerateFeatures = () => {
+    const auto: string[] = []
+    if (formData.brand) auto.push(`Marca / Línea: ${formData.brand}`)
+    if (formData.category) auto.push(`Categoría Técnica: ${formData.category}`)
+    if (formData.sku) auto.push(`Código de Referencia (SKU): ${formData.sku}`)
+    // Extraer posibles especificaciones del nombre (ej. 18W, 85-265V, 12V, 48V, 100Ah, 4K)
+    const specsRegex = /\b(\d+(?:W|V|Ah|kVA|kW|MP|K|m|A|Hz|\-\d+V))\b/gi
+    const matches = formData.name.match(specsRegex)
+    if (matches && matches.length > 0) {
+      auto.push(`Especificaciones nominales: ${Array.from(new Set(matches)).join(" / ")}`)
+    }
+    auto.push("Garantía certificada por Servicios y Suministros SP")
+    auto.push("Soporte técnico y asesoría de instalación disponible")
+    setFormData(prev => ({
+      ...prev,
+      featuresList: Array.from(new Set([...prev.featuresList, ...auto])),
+    }))
   }
 
   const handleToggleActive = async (product: ProductItem) => {
@@ -502,10 +622,15 @@ export default function AdminDashboard() {
     try {
       const url = modalMode === "create" ? "/api/products" : `/api/products/${formData.id}`
       const method = modalMode === "create" ? "POST" : "PUT"
+      const payload = {
+        ...formData,
+        features: JSON.stringify(formData.featuresList || []),
+        variants: JSON.stringify(formData.variantsList || []),
+      }
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
       if (res.ok) {
         setIsModalOpen(false)
@@ -563,16 +688,16 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Multi-Currency Bar (Bs - USD - EUR) */}
-          <div className="flex flex-wrap items-center gap-3 bg-white/[0.03] border border-white/10 px-3 py-1.5 rounded-2xl">
+          {/* Multi-Currency Bar (BCV - Binance - EUR) */}
+          <div className="flex flex-wrap items-center gap-3 bg-white/[0.03] border border-white/10 px-3.5 py-1.5 rounded-2xl">
             <div className="flex items-center gap-1.5 text-xs">
               <Coins className="w-4 h-4 text-secondary" />
-              <span className="text-white/50 font-bold hidden md:inline">Multi-moneda:</span>
+              <span className="text-white/50 font-bold hidden xl:inline">Multi-moneda:</span>
             </div>
 
             {editingRates ? (
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-white/60">USD/Bs:</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[10px] text-green-400 font-bold">BCV $:</span>
                 <input
                   type="number"
                   step="0.01"
@@ -580,7 +705,15 @@ export default function AdminDashboard() {
                   onChange={e => setRateUsdInput(e.target.value)}
                   className="w-20 bg-[#020813] border border-secondary rounded-lg px-2 py-1 text-xs text-white font-mono"
                 />
-                <span className="text-[10px] text-white/60">EUR/Bs:</span>
+                <span className="text-[10px] text-amber-400 font-bold">Binance:</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={rateBinanceInput}
+                  onChange={e => setRateBinanceInput(e.target.value)}
+                  className="w-20 bg-[#020813] border border-secondary rounded-lg px-2 py-1 text-xs text-white font-mono"
+                />
+                <span className="text-[10px] text-blue-400 font-bold">EUR €:</span>
                 <input
                   type="number"
                   step="0.01"
@@ -596,32 +729,53 @@ export default function AdminDashboard() {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setEditingRates(true)}
-                className="text-xs font-mono text-white/80 hover:text-secondary flex items-center gap-2"
-                title="Haz clic para cambiar la tasa de cambio"
-              >
-                <span>
-                  1$ = <strong className="text-green-400">Bs.{settings?.usdToBs?.toFixed(2)}</strong>
-                </span>
-                <span className="text-white/20">|</span>
-                <span>
-                  1€ = <strong className="text-blue-400">Bs.{settings?.eurToBs?.toFixed(2)}</strong>
-                </span>
-                <Edit2 className="w-3 h-3 text-secondary" />
-              </button>
+              <div className="flex items-center gap-2.5 text-xs font-mono">
+                <button
+                  onClick={() => setEditingRates(true)}
+                  className="text-white/80 hover:text-secondary flex flex-wrap items-center gap-2"
+                  title="Haz clic para editar las tasas manualmente"
+                >
+                  <span>
+                    BCV: <strong className="text-green-400">Bs.{settings?.usdToBs?.toFixed(2)}</strong>
+                  </span>
+                  <span className="text-white/20">|</span>
+                  <span>
+                    Binance: <strong className="text-amber-400">Bs.{(settings?.binanceToBs || 78.9).toFixed(2)}</strong>
+                  </span>
+                  <span className="text-white/20">|</span>
+                  <span>
+                    1€ = <strong className="text-blue-400">Bs.{settings?.eurToBs?.toFixed(2)}</strong>
+                  </span>
+                  <Edit2 className="w-3 h-3 text-secondary" />
+                </button>
+                <button
+                  onClick={handleSyncLiveRates}
+                  disabled={syncingRates}
+                  title="Sincronizar tasa actual BCV y Binance P2P en vivo"
+                  className="p-1 rounded-lg bg-white/5 hover:bg-secondary/20 text-white/70 hover:text-secondary transition-colors"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${syncingRates ? "animate-spin text-secondary" : ""}`} />
+                </button>
+              </div>
             )}
 
             <div className="flex bg-[#020813] p-0.5 rounded-xl border border-white/10">
-              {(["USD", "BS", "EUR"] as const).map(curr => (
+              {(
+                [
+                  { id: "USD", label: "USD" },
+                  { id: "BS", label: "BS BCV" },
+                  { id: "BINANCE", label: "BINANCE" },
+                  { id: "EUR", label: "EUR" },
+                ] as const
+              ).map(curr => (
                 <button
-                  key={curr}
-                  onClick={() => setDisplayCurrency(curr)}
+                  key={curr.id}
+                  onClick={() => setDisplayCurrency(curr.id)}
                   className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all ${
-                    displayCurrency === curr ? "bg-secondary text-white" : "text-white/50 hover:text-white"
+                    displayCurrency === curr.id ? "bg-secondary text-white" : "text-white/50 hover:text-white"
                   }`}
                 >
-                  {curr}
+                  {curr.label}
                 </button>
               ))}
             </div>
@@ -1298,26 +1452,233 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black uppercase text-white/60 mb-1">URL de Imagen</label>
-                <input
-                  type="text"
-                  value={formData.image}
-                  onChange={e => setFormData({ ...formData, image: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-xs"
-                />
+              {/* Image Upload & Preview Section */}
+              <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-4 space-y-3">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-secondary">
+                  Imagen del Producto (Subir Archivo o URL)
+                </label>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-24 h-24 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                    {formData.image && formData.image !== "/placeholder-product.png" ? (
+                      <img
+                        src={formData.image}
+                        alt="Vista previa"
+                        className="w-full h-full object-cover"
+                        onError={e => {
+                          ;(e.target as any).style.display = "none"
+                        }}
+                      />
+                    ) : (
+                      <Package className="w-8 h-8 text-white/20" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 w-full space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="cursor-pointer bg-secondary hover:bg-secondary/90 text-white text-xs font-black px-4 py-2.5 rounded-xl inline-flex items-center gap-2 shadow-lg transition-all">
+                        {uploadingImage ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                        <span>{uploadingImage ? "Subiendo imagen..." : "Subir Imagen desde mi Equipo"}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      {formData.image && formData.image !== "/placeholder-product.png" && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, image: "/placeholder-product.png" })}
+                          className="text-xs text-red-400 hover:underline px-2 py-1"
+                        >
+                          Quitar imagen
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={formData.image}
+                      onChange={e => setFormData({ ...formData, image: e.target.value })}
+                      placeholder="O pega aquí una URL de imagen (https://... o /uploads/...)"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                    />
+                  </div>
+                </div>
               </div>
 
+              {/* Description */}
               <div>
                 <label className="block text-[10px] font-black uppercase text-white/60 mb-1">
-                  Descripción / Especificaciones
+                  Descripción Comercial para el Cliente
                 </label>
                 <textarea
                   rows={2}
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe los beneficios, aplicaciones y detalles generales del equipo..."
                   className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-xs"
                 />
+              </div>
+
+              {/* Technical Characteristics (Features) */}
+              <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-4 space-y-3">
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-secondary">
+                    Características y Especificaciones Técnicas ({formData.featuresList.length})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerateFeatures}
+                    className="text-[10px] font-bold bg-secondary/15 hover:bg-secondary/25 text-secondary px-2.5 py-1 rounded-lg border border-secondary/30 transition-colors"
+                  >
+                    ✨ Auto-extraer características
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newFeatureInput}
+                    onChange={e => setNewFeatureInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        if (newFeatureInput.trim()) {
+                          setFormData(prev => ({
+                            ...prev,
+                            featuresList: [...prev.featuresList, newFeatureInput.trim()],
+                          }))
+                          setNewFeatureInput("")
+                        }
+                      }
+                    }}
+                    placeholder="Ej: Voltaje de entrada: 85-265V AC / Potencia: 18W / Garantía: 1 Año"
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (!newFeatureInput.trim()) return
+                      setFormData(prev => ({
+                        ...prev,
+                        featuresList: [...prev.featuresList, newFeatureInput.trim()],
+                      }))
+                      setNewFeatureInput("")
+                    }}
+                    className="bg-white/10 hover:bg-secondary text-white font-black rounded-xl text-xs px-4"
+                  >
+                    + Agregar
+                  </Button>
+                </div>
+
+                {formData.featuresList.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {formData.featuresList.map((feat, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1.5 bg-[#020813] border border-white/10 px-3 py-1.5 rounded-xl text-xs text-white/90"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-secondary shrink-0" />
+                        <span>{feat}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData(prev => ({
+                              ...prev,
+                              featuresList: prev.featuresList.filter((_, i) => i !== idx),
+                            }))
+                          }
+                          className="text-white/40 hover:text-red-400 ml-1"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Product Variants */}
+              <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-4 space-y-3">
+                <label className="block text-[10px] font-black uppercase tracking-wider text-secondary">
+                  Variantes del Producto (Opcional: Potencia, Capacidad, Color o Presentación) ({formData.variantsList.length})
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                  <input
+                    type="text"
+                    value={newVariantName}
+                    onChange={e => setNewVariantName(e.target.value)}
+                    placeholder="Nombre variante (Ej: 18W Luz Blanca / 24W / Con Instalación)"
+                    className="sm:col-span-6 bg-white/5 border border-white/10 rounded-xl p-2.5 text-white text-xs"
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newVariantPrice}
+                    onChange={e => setNewVariantPrice(e.target.value)}
+                    placeholder="Precio $ USD"
+                    className="sm:col-span-3 bg-white/5 border border-white/10 rounded-xl p-2.5 text-green-400 font-mono text-xs"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (!newVariantName.trim()) return
+                      setFormData(prev => ({
+                        ...prev,
+                        variantsList: [
+                          ...prev.variantsList,
+                          {
+                            name: newVariantName.trim(),
+                            price: parseFloat(newVariantPrice) || prev.price || 0,
+                            stock: parseInt(newVariantStock, 10) || 10,
+                          },
+                        ],
+                      }))
+                      setNewVariantName("")
+                    }}
+                    className="sm:col-span-3 bg-white/10 hover:bg-secondary text-white font-black rounded-xl text-xs"
+                  >
+                    + Variante
+                  </Button>
+                </div>
+
+                {formData.variantsList.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    {formData.variantsList.map((v, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between bg-[#020813] border border-white/10 px-3.5 py-2 rounded-xl text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Layers className="w-3.5 h-3.5 text-secondary" />
+                          <span className="font-bold text-white">{v.name}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-green-400 font-bold">
+                            ${Number(v.price).toFixed(2)} USD
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setFormData(prev => ({
+                                ...prev,
+                                variantsList: prev.variantsList.filter((_, i) => i !== idx),
+                              }))
+                            }
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-white/10">

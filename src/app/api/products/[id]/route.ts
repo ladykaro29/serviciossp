@@ -16,7 +16,22 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const { name, sku, category, price, costPrice, stock, minStock, unit, brand, description, image, isActive } = body
+    const {
+      name,
+      sku,
+      category,
+      price,
+      costPrice,
+      stock,
+      minStock,
+      unit,
+      brand,
+      description,
+      features,
+      variants,
+      image,
+      isActive,
+    } = body
 
     const existing = await prisma.product.findUnique({ where: { id } })
     if (!existing) {
@@ -24,6 +39,18 @@ export async function PUT(
     }
 
     const newStockVal = stock !== undefined ? parseInt(String(stock), 10) : existing.stock
+    const featuresStr =
+      features !== undefined
+        ? typeof features === "string"
+          ? features
+          : JSON.stringify(Array.isArray(features) ? features : [])
+        : undefined
+    const variantsStr =
+      variants !== undefined
+        ? typeof variants === "string"
+          ? variants
+          : JSON.stringify(Array.isArray(variants) ? variants : [])
+        : undefined
 
     const updatedProduct = await prisma.product.update({
       where: { id },
@@ -38,6 +65,8 @@ export async function PUT(
         ...(unit !== undefined && { unit }),
         ...(brand !== undefined && { brand }),
         ...(description !== undefined && { description }),
+        ...(featuresStr !== undefined && { features: featuresStr }),
+        ...(variantsStr !== undefined && { variants: variantsStr }),
         ...(image !== undefined && { image }),
         ...(isActive !== undefined && { isActive }),
       },

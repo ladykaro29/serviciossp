@@ -4,7 +4,97 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import bcrypt from "bcryptjs"
 
-async function ensureInitialErpData() {
+async function fetchLiveVenezuelaRates() {
+  let bcvUsd: number | null = null
+  let binanceUsdt: number | null = null
+  let bcvEur: number | null = null
+
+  // 1. Consultar DolarApi Venezuela (BCV Oficial y Paralelo/Binance)
+  try {
+    const res = await fetch("https://ve.dolarapi.com/v1/dolares", {
+      cache: "no-store",
+      signal: AbortSignal.timeout(4500),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        const oficial = data.find((d: any) => d.fuente === "oficial")
+        const paralelo = data.find((d: any) => d.fuente === "paralelo")
+        if (oficial?.promedio && Number(oficial.promedio) > 0) {
+          bcvUsd = Number(Number(oficial.promedio).toFixed(2))
+        }
+        if (paralelo?.promedio && Number(paralelo.promedio) > 0) {
+          binanceUsdt = Number(Number(paralelo.promedio).toFixed(2))
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("No se pudo conectar a ve.dolarapi.com/v1/dolares:", e)
+  }
+
+  // 2. Consultar directamente API P2P de Binance (USDT -> VES) para mayor precisión
+  try {
+    const binanceRes = await fetch("https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        asset: "USDT",
+        fiat: "VES",
+        merchantCheck: true,
+        page: 1,
+        payTypes: [],
+        publisherType: null,
+        rows: 5,
+        tradeType: "BUY",
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(4500),
+    })
+    if (binanceRes.ok) {
+      const bData = await binanceRes.json()
+      const ads = bData?.data
+      if (Array.isArray(ads) && ads.length > 0) {
+        const prices = ads
+          .map((item: any) => parseFloat(item?.adv?.price))
+          .filter((p: number) => !isNaN(p) && p > 0)
+        if (prices.length > 0) {
+          const avg = prices.reduce((a: number, b: number) => a + b, 0) / prices.length
+          binanceUsdt = Number(avg.toFixed(2))
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("No se pudo consultar Binance P2P directo:", e)
+  }
+
+  // 3. Consultar Euro BCV o calcular relación EUR/USD oficial
+  try {
+    const eurRes = await fetch("https://ve.dolarapi.com/v1/euros", {
+      cache: "no-store",
+      signal: AbortSignal.timeout(4000),
+    })
+    if (eurRes.ok) {
+      const eurData = await eurRes.json()
+      if (Array.isArray(eurData)) {
+        const eurOficial = eurData.find((d: any) => d.fuente === "oficial") || eurData[0]
+        if (eurOficial?.promedio && Number(eurOficial.promedio) > 0) {
+          bcvEur = Number(Number(eurOficial.promedio).toFixed(2))
+        }
+      } else if (eurData?.promedio && Number(eurData.promedio) > 0) {
+        bcvEur = Number(Number(eurData.promedio).toFixed(2))
+      }
+    }
+  } catch {}
+
+  if (!bcvEur && bcvUsd) {
+    // Relación internacional EUR/USD aproximada (1 EUR ≈ 1.085 USD) en BCV
+    bcvEur = Number((bcvUsd * 1.085).toFixed(2))
+  }
+
+  return { bcvUsd, binanceUsdt, bcvEur }
+}
+
+async function ensureInitialErpData(forceSyncRates = false) {
   // 1. Settings
   let settings = await prisma.systemSetting.findUnique({ where: { id: "default" } })
   if (!settings) {
@@ -12,6 +102,7 @@ async function ensureInitialErpData() {
       data: {
         id: "default",
         usdToBs: 65.5,
+        binanceToBs: 78.9,
         eurToBs: 71.2,
         ivaPercent: 16.0,
         igtfPercent: 3.0,
@@ -22,6 +113,22 @@ async function ensureInitialErpData() {
         companyRif: "J-40403649-0",
       },
     })
+    forceSyncRates = true
+  }
+
+  // Auto-sync live rates if requested or if still on default seed value (65.5)
+  if (forceSyncRates || settings.usdToBs === 65.5) {
+    const live = await fetchLiveVenezuelaRates()
+    if (live.bcvUsd || live.binanceUsdt || live.bcvEur) {
+      settings = await prisma.systemSetting.update({
+        where: { id: "default" },
+        data: {
+          ...(live.bcvUsd && { usdToBs: live.bcvUsd }),
+          ...(live.binanceUsdt && { binanceToBs: live.binanceUsdt }),
+          ...(live.bcvEur && { eurToBs: live.bcvEur }),
+        },
+      })
+    }
   }
 
   // 2. Default Bank Accounts
@@ -135,8 +242,9 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const isPublic = searchParams.get("public") === "true"
+    const syncRates = searchParams.get("syncRates") === "true"
 
-    const settings = await ensureInitialErpData()
+    const settings = await ensureInitialErpData(syncRates)
 
     if (isPublic) {
       return NextResponse.json({ settings })
@@ -206,12 +314,19 @@ export async function POST(request: Request) {
 
     const settings = await ensureInitialErpData()
 
+    // 0. SYNC LIVE RATES (BCV & Binance P2P)
+    if (action === "SYNC_LIVE_RATES") {
+      const updated = await ensureInitialErpData(true)
+      return NextResponse.json({ success: true, settings: updated })
+    }
+
     // 1. UPDATE SETTINGS (Multi-currency & Financing Parameters)
     if (action === "UPDATE_SETTINGS") {
       const updated = await prisma.systemSetting.update({
         where: { id: "default" },
         data: {
           ...(payload.usdToBs !== undefined && { usdToBs: parseFloat(payload.usdToBs) || 65.5 }),
+          ...(payload.binanceToBs !== undefined && { binanceToBs: parseFloat(payload.binanceToBs) || 78.9 }),
           ...(payload.eurToBs !== undefined && { eurToBs: parseFloat(payload.eurToBs) || 71.2 }),
           ...(payload.ivaPercent !== undefined && { ivaPercent: parseFloat(payload.ivaPercent) || 16 }),
           ...(payload.igtfPercent !== undefined && { igtfPercent: parseFloat(payload.igtfPercent) || 3 }),

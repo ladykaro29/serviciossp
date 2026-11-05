@@ -20,6 +20,7 @@ model User {
 model SystemSetting {
   id                     String   @id @default("default")
   usdToBs                Float    @default(65.50)
+  binanceToBs            Float    @default(78.90)
   eurToBs                Float    @default(71.20)
   ivaPercent             Float    @default(16.0)
   igtfPercent            Float    @default(3.0)
@@ -44,6 +45,8 @@ model Product {
   brand       String?
   image       String?
   description String?  @default("")
+  features    String?  @default("[]") // JSON array of strings or { label, value }
+  variants    String?  @default("[]") // JSON array of { name, price, stock, sku }
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

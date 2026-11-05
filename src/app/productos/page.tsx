@@ -1,18 +1,69 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { ShoppingCart, Search, Filter, MessageCircle, Plus, Check, Coins, CreditCard, PackageCheck } from "lucide-react"
+import {
+  Search,
+  Filter,
+  MessageCircle,
+  Plus,
+  Check,
+  Coins,
+  CreditCard,
+  PackageCheck,
+  Eye,
+  X,
+  CheckCircle2,
+  Layers,
+  ShieldCheck,
+  Tag,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { products as initialProducts } from "@/lib/data/products"
 import { useCart } from "@/context/CartContext"
+
+function parseJsonArray(raw: any): any[] {
+  if (Array.isArray(raw)) return raw
+  if (typeof raw === "string" && raw.trim() !== "") {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+function getEffectiveFeatures(product: any): string[] {
+  const custom = parseJsonArray(product.features)
+  if (custom.length > 0) return custom
+
+  // Generar características técnicas automáticas cuando aún no se han personalizado
+  const fallback: string[] = []
+  if (product.brand) fallback.push(`Marca / Especificación: ${product.brand}`)
+  if (product.category) fallback.push(`Línea: ${product.category}`)
+  const specsMatch = String(product.name || "").match(/\b(\d+(?:W|V|Ah|kVA|kW|MP|K|m|A|Hz|\-\d+V))\b/gi)
+  if (specsMatch && specsMatch.length > 0) {
+    fallback.push(`Capacidad / Rango: ${Array.from(new Set(specsMatch)).join(" · ")}`)
+  }
+  fallback.push("Garantía certificada por Servicios y Suministros SP")
+  return fallback
+}
 
 export default function ProductosPage() {
   const [productList, setProductList] = useState<any[]>(initialProducts)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("Todos")
   const [addedProductId, setAddedProductId] = useState<string | number | null>(null)
-  const [displayCurrency, setDisplayCurrency] = useState<"USD" | "BS" | "EUR">("USD")
-  const [rates, setRates] = useState({ usdToBs: 65.5, eurToBs: 71.2, defaultInitialPercent: 40 })
+  const [displayCurrency, setDisplayCurrency] = useState<"USD" | "BS" | "BINANCE" | "EUR">("USD")
+  const [rates, setRates] = useState({
+    usdToBs: 65.5,
+    binanceToBs: 78.9,
+    eurToBs: 71.2,
+    defaultInitialPercent: 40,
+  })
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(0)
   const { addToCart } = useCart()
 
   useEffect(() => {
@@ -25,12 +76,13 @@ export default function ProductosPage() {
       })
       .catch(err => console.error("Error al cargar productos dinámicos:", err))
 
-    fetch("/api/erp?public=true")
+    fetch("/api/erp?public=true&syncRates=true")
       .then(res => res.json())
       .then(data => {
         if (data?.settings) {
           setRates({
             usdToBs: data.settings.usdToBs || 65.5,
+            binanceToBs: data.settings.binanceToBs || 78.9,
             eurToBs: data.settings.eurToBs || 71.2,
             defaultInitialPercent: data.settings.defaultInitialPercent || 40,
           })
@@ -41,7 +93,16 @@ export default function ProductosPage() {
 
   const formatPrice = (usdPrice: number) => {
     if (displayCurrency === "BS") {
-      return `Bs. ${(usdPrice * rates.usdToBs).toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      return `Bs. ${(usdPrice * rates.usdToBs).toLocaleString("es-VE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    }
+    if (displayCurrency === "BINANCE") {
+      return `Bs. ${(usdPrice * rates.binanceToBs).toLocaleString("es-VE", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
     }
     if (displayCurrency === "EUR") {
       const eurVal = usdPrice * (rates.usdToBs / rates.eurToBs)
@@ -59,24 +120,44 @@ export default function ProductosPage() {
     return productList.filter(product => {
       const brandStr = product.brand || ""
       const skuStr = product.sku || ""
+      const descStr = product.description || ""
+      const q = searchQuery.toLowerCase()
       const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        brandStr.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        skuStr.toLowerCase().includes(searchQuery.toLowerCase())
+        product.name.toLowerCase().includes(q) ||
+        brandStr.toLowerCase().includes(q) ||
+        skuStr.toLowerCase().includes(q) ||
+        descStr.toLowerCase().includes(q)
       const matchesCategory = selectedCategory === "Todos" || product.category === selectedCategory
       return matchesSearch && matchesCategory
     })
   }, [productList, searchQuery, selectedCategory])
 
-  const handleAddToCart = (product: any) => {
-    addToCart(product)
+  const handleAddToCart = (product: any, variant?: { name: string; price: number }) => {
+    const itemToAdd = variant
+      ? {
+          ...product,
+          id: `${product.id}-${variant.name}`,
+          name: `${product.name} (${variant.name})`,
+          price: variant.price || product.price,
+        }
+      : product
+
+    addToCart(itemToAdd)
     setAddedProductId(product.id)
     setTimeout(() => setAddedProductId(null), 2000)
   }
 
-  const handleWhatsApp = (productName: string) => {
-    const message = encodeURIComponent(`Hola, me interesa consultar el precio, disponibilidad y plan de cuotas de: ${productName}`)
+  const handleWhatsApp = (productName: string, variantName?: string) => {
+    const fullTitle = variantName ? `${productName} - Variante: ${variantName}` : productName
+    const message = encodeURIComponent(
+      `Hola, me interesa consultar detalles, disponibilidad y plan de cuotas de: ${fullTitle}`
+    )
     window.open(`https://wa.me/584147550091?text=${message}`, "_blank")
+  }
+
+  const openProductDetail = (product: any) => {
+    setSelectedProduct(product)
+    setSelectedVariantIdx(0)
   }
 
   return (
@@ -87,38 +168,54 @@ export default function ProductosPage() {
         <div className="container mx-auto px-4 relative z-10 flex flex-col lg:flex-row justify-between items-center gap-8 text-center lg:text-left">
           <div>
             <div className="inline-block px-4 py-1 bg-secondary/10 text-secondary text-[10px] font-black uppercase tracking-widest rounded-full mb-6">
-              Equipos de Alta Tecnología · Multi-Moneda (Bs · USD · EUR)
+              Equipos de Alta Tecnología · Multi-Moneda (BCV · Binance · USD · EUR)
             </div>
             <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tighter leading-none">
               Catálogo <span className="text-secondary">Premium</span>
             </h1>
             <p className="text-white/60 max-w-2xl text-xl leading-relaxed">
-              Explora nuestra selección de equipos de seguridad, energía solar y conectividad. ¡Llévatelo hoy de contado o financiado en cuotas!
+              Explora especificaciones técnicas, características, variantes y opciones de pago de contado o en cuotas.
             </p>
           </div>
 
           {/* Multi-currency Switcher Card */}
           <div className="bg-[#041124]/90 backdrop-blur-xl p-5 rounded-3xl border border-white/10 shadow-2xl shrink-0">
             <div className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-3 flex items-center gap-2">
-              <Coins className="w-4 h-4 text-secondary" /> Moneda de Visualización
+              <Coins className="w-4 h-4 text-secondary" /> Moneda y Tasa de Referencia
             </div>
-            <div className="flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-              {(["USD", "BS", "EUR"] as const).map(curr => (
+            <div className="flex flex-wrap gap-1.5 bg-white/5 p-1.5 rounded-2xl border border-white/10">
+              {(["USD", "BS", "BINANCE", "EUR"] as const).map(curr => (
                 <button
                   key={curr}
                   onClick={() => setDisplayCurrency(curr)}
-                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
                     displayCurrency === curr
                       ? "bg-secondary text-white shadow-lg shadow-secondary/20"
                       : "text-white/50 hover:text-white"
                   }`}
                 >
-                  {curr === "USD" ? "$ USD" : curr === "BS" ? "Bs. (BCV)" : "€ EUR"}
+                  {curr === "USD"
+                    ? "$ USD"
+                    : curr === "BS"
+                    ? "Bs. (BCV)"
+                    : curr === "BINANCE"
+                    ? "Bs. (Binance)"
+                    : "€ EUR"}
                 </button>
               ))}
             </div>
-            <div className="mt-2.5 text-[10px] text-white/40 font-mono text-center">
-              Tasa Ref: 1 USD = Bs. {rates.usdToBs.toFixed(2)} | 1 EUR = Bs. {rates.eurToBs.toFixed(2)}
+            <div className="mt-2.5 text-[10px] text-white/50 font-mono text-center flex flex-wrap justify-center gap-2">
+              <span>
+                BCV: <strong className="text-green-400">Bs. {rates.usdToBs.toFixed(2)}</strong>
+              </span>
+              <span>|</span>
+              <span>
+                Binance: <strong className="text-amber-400">Bs. {rates.binanceToBs.toFixed(2)}</strong>
+              </span>
+              <span>|</span>
+              <span>
+                EUR: <strong className="text-blue-400">Bs. {rates.eurToBs.toFixed(2)}</strong>
+              </span>
             </div>
           </div>
         </div>
@@ -157,7 +254,7 @@ export default function ProductosPage() {
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-foreground/30 w-5 h-5 group-focus-within:text-secondary transition-colors" />
               <input
                 type="text"
-                placeholder="Busca marcas, modelos, SKU o categorías..."
+                placeholder="Busca marcas, modelos, SKU o características..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full pl-16 pr-6 py-5 rounded-2xl border border-white/5 focus:ring-4 focus:ring-secondary/5 focus:border-secondary outline-none text-base transition-all bg-white/5 focus:bg-background text-white placeholder:text-white/20 font-medium"
@@ -172,6 +269,8 @@ export default function ProductosPage() {
           {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
               {filteredProducts.map(product => {
+                const variantsList = parseJsonArray(product.variants)
+                const featuresList = getEffectiveFeatures(product)
                 const hasPrice = product.price && Number(product.price) > 0
                 const priceNum = Number(product.price) || 0
                 const initialUsd = priceNum * (rates.defaultInitialPercent / 100)
@@ -182,10 +281,13 @@ export default function ProductosPage() {
                     key={product.id}
                     className="glass-dark rounded-[3rem] border border-white/5 overflow-hidden hover:shadow-[0_20px_50px_rgba(255,98,0,0.1)] hover:-translate-y-2 transition-all duration-500 group flex flex-col h-full relative"
                   >
-                    <div className="aspect-square bg-white/5 relative p-10 flex items-center justify-center overflow-hidden border-b border-white/5">
+                    {/* Clickable Image Area */}
+                    <div
+                      onClick={() => openProductDetail(product)}
+                      className="aspect-square bg-white/5 relative p-10 flex items-center justify-center overflow-hidden border-b border-white/5 cursor-pointer"
+                    >
                       <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent"></div>
 
-                      {/* Visual Image / Placeholder */}
                       {product.image && product.image !== "/placeholder-product.png" ? (
                         <img
                           src={product.image}
@@ -222,66 +324,98 @@ export default function ProductosPage() {
                         {product.brand || "SP"}
                       </div>
 
-                      {/* Category Label */}
-                      <div className="absolute bottom-6 left-6 z-20">
-                        <span className="text-[9px] bg-secondary/10 text-secondary font-black px-4 py-2 rounded-xl uppercase tracking-widest border border-secondary/20">
+                      {/* Category & Variants Count */}
+                      <div className="absolute bottom-6 left-6 right-6 flex justify-between items-center z-20">
+                        <span className="text-[9px] bg-secondary/10 text-secondary font-black px-3.5 py-1.5 rounded-xl uppercase tracking-widest border border-secondary/20">
                           {product.category}
                         </span>
+                        {variantsList.length > 0 && (
+                          <span className="text-[9px] bg-purple-500/20 text-purple-300 font-black px-3 py-1.5 rounded-xl uppercase tracking-wider border border-purple-500/30 flex items-center gap-1">
+                            <Layers className="w-3 h-3" /> {variantsList.length} variantes
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    <div className="p-8 flex flex-col flex-1">
+                    <div className="p-7 flex flex-col flex-1">
                       <h3
-                        className="font-black text-foreground text-xl leading-tight mb-4 flex-1 line-clamp-2 group-hover:text-secondary transition-colors"
+                        onClick={() => openProductDetail(product)}
+                        className="font-black text-foreground text-lg leading-tight mb-2 line-clamp-2 group-hover:text-secondary transition-colors cursor-pointer"
                         title={product.name}
                       >
                         {product.name}
                       </h3>
 
+                      {/* Short Description Preview */}
+                      <p className="text-xs text-foreground/60 line-clamp-2 mb-3">
+                        {product.description || `Equipo profesional de la línea ${product.category} con respaldo técnico SP.`}
+                      </p>
+
+                      {/* Key Characteristics Preview */}
+                      {featuresList.length > 0 && (
+                        <div className="space-y-1 mb-4">
+                          {featuresList.slice(0, 2).map((feat: string, i: number) => (
+                            <div key={i} className="flex items-center gap-1.5 text-[11px] text-foreground/75 truncate">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-secondary shrink-0" />
+                              <span className="truncate">{feat}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* View Full Detail Button */}
+                      <button
+                        type="button"
+                        onClick={() => openProductDetail(product)}
+                        className="mb-4 w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-black uppercase tracking-wider text-white/80 hover:text-white flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-secondary" /> Ver Detalles, Características y Variantes
+                      </button>
+
                       {/* Financing Pill if hasPrice */}
                       {hasPrice && (
-                        <div className="mb-4 bg-secondary/10 border border-secondary/20 rounded-2xl p-3 flex items-center gap-2.5">
+                        <div className="mb-4 bg-secondary/10 border border-secondary/20 rounded-2xl p-2.5 flex items-center gap-2">
                           <CreditCard className="w-4 h-4 text-secondary shrink-0" />
-                          <div className="text-[11px] leading-tight text-white/80">
-                            <span className="font-black text-secondary">¡Llévatelo en cuotas!</span> Inicial{" "}
-                            <strong className="text-white">{formatPrice(initialUsd)}</strong> ({rates.defaultInitialPercent}%) + 3 cuotas c/14 días
+                          <div className="text-[10px] leading-tight text-white/80">
+                            <span className="font-black text-secondary">¡En cuotas!</span> Inicial{" "}
+                            <strong className="text-white">{formatPrice(initialUsd)}</strong> ({rates.defaultInitialPercent}%) + 3 cuotas
                           </div>
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between mt-auto pt-6 border-t border-white/5">
+                      <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
                         <div>
-                          <span className="text-[10px] text-foreground/40 uppercase tracking-widest font-black block mb-1">
-                            {hasPrice ? `Contado (${displayCurrency})` : "Cotizar"}
+                          <span className="text-[10px] text-foreground/40 uppercase tracking-widest font-black block mb-0.5">
+                            {hasPrice ? `Precio (${displayCurrency})` : "Cotizar"}
                           </span>
                           {hasPrice ? (
                             <span className="font-black text-xl text-green-400 font-mono tracking-tight">
                               {formatPrice(priceNum)}
                             </span>
                           ) : (
-                            <span className="font-black text-xl text-foreground tracking-tighter italic">
-                              Disponible
+                            <span className="font-black text-lg text-foreground tracking-tighter italic">
+                              A Consultar
                             </span>
                           )}
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2.5">
                           <Button
                             onClick={() => handleAddToCart(product)}
                             size="icon"
-                            className={`h-14 w-14 rounded-2xl shrink-0 shadow-2xl transition-all hover:scale-110 active:scale-95 ${
+                            className={`h-12 w-12 rounded-2xl shrink-0 shadow-2xl transition-all hover:scale-110 active:scale-95 ${
                               addedProductId === product.id
                                 ? "bg-green-600"
                                 : "bg-primary border border-white/10 hover:bg-secondary"
                             }`}
                           >
-                            {addedProductId === product.id ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                            {addedProductId === product.id ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                           </Button>
                           <Button
                             onClick={() => handleWhatsApp(product.name)}
                             size="icon"
-                            className="h-14 w-14 bg-green-600 hover:bg-green-700 text-white rounded-2xl shrink-0 shadow-2xl shadow-green-900/20 transition-all hover:scale-110 active:scale-95"
+                            className="h-12 w-12 bg-green-600 hover:bg-green-700 text-white rounded-2xl shrink-0 shadow-2xl shadow-green-900/20 transition-all hover:scale-110 active:scale-95"
                           >
-                            <MessageCircle className="w-6 h-6" />
+                            <MessageCircle className="w-5 h-5" />
                           </Button>
                         </div>
                       </div>
@@ -313,6 +447,204 @@ export default function ProductosPage() {
           )}
         </main>
       </div>
+
+      {/* ====================================================================
+          PRODUCT DETAIL MODAL (Descripción, Características y Variantes)
+         ==================================================================== */}
+      {selectedProduct && (() => {
+        const variantsList = parseJsonArray(selectedProduct.variants)
+        const featuresList = getEffectiveFeatures(selectedProduct)
+        const activeVariant = variantsList[selectedVariantIdx] || null
+        const effectivePrice = activeVariant?.price !== undefined && Number(activeVariant.price) > 0
+          ? Number(activeVariant.price)
+          : Number(selectedProduct.price) || 0
+        const effectiveStock = activeVariant?.stock !== undefined
+          ? Number(activeVariant.stock)
+          : selectedProduct.stock ?? 15
+
+        return (
+          <div
+            onClick={() => setSelectedProduct(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              className="bg-[#041124] border border-white/10 rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 sm:p-10 shadow-2xl relative"
+            >
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="absolute top-6 right-6 w-11 h-11 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-white/70 hover:text-white transition-colors z-10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                {/* Left Column: Image & Badges */}
+                <div className="md:col-span-5 space-y-4">
+                  <div className="aspect-square rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden p-6 relative">
+                    {selectedProduct.image && selectedProduct.image !== "/placeholder-product.png" ? (
+                      <img
+                        src={selectedProduct.image}
+                        alt={selectedProduct.name}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <div className="text-4xl font-black uppercase text-white/15">
+                        {selectedProduct.brand || "SP"}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="bg-white/[0.03] border border-white/5 p-3 rounded-2xl">
+                      <span className="text-[10px] uppercase text-white/40 font-bold block">Código SKU</span>
+                      <strong className="font-mono text-secondary">{selectedProduct.sku || "SP-CERT"}</strong>
+                    </div>
+                    <div className="bg-white/[0.03] border border-white/5 p-3 rounded-2xl">
+                      <span className="text-[10px] uppercase text-white/40 font-bold block">Disponibilidad</span>
+                      <strong className="text-green-400">{effectiveStock} unidades</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Full Info, Description, Characteristics & Variants */}
+                <div className="md:col-span-7 flex flex-col justify-between space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-secondary/15 text-secondary border border-secondary/30">
+                        {selectedProduct.category}
+                      </span>
+                      {selectedProduct.brand && (
+                        <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-white/10 text-white/80">
+                          Marca: {selectedProduct.brand}
+                        </span>
+                      )}
+                    </div>
+
+                    <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                      {selectedProduct.name}
+                    </h2>
+
+                    {/* Price Box in Multi-currency */}
+                    <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 flex flex-wrap justify-between items-center gap-4">
+                      <div>
+                        <span className="text-[10px] uppercase font-black tracking-widest text-white/40 block">
+                          Precio de Contado ({displayCurrency})
+                        </span>
+                        {effectivePrice > 0 ? (
+                          <div className="flex items-baseline gap-3 mt-1">
+                            <span className="text-3xl font-black text-green-400 font-mono">
+                              {formatPrice(effectivePrice)}
+                            </span>
+                            {displayCurrency !== "USD" && (
+                              <span className="text-xs font-mono text-white/50">
+                                (${effectivePrice.toFixed(2)} USD)
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xl font-black text-amber-400">Precio a Consultar</span>
+                        )}
+                      </div>
+
+                      {effectivePrice > 0 && (
+                        <div className="text-right bg-secondary/10 border border-secondary/30 px-3.5 py-2 rounded-xl">
+                          <div className="text-[10px] font-black uppercase text-secondary">
+                            Plan en Cuotas ({rates.defaultInitialPercent}% Inicial)
+                          </div>
+                          <div className="text-xs font-mono text-white font-bold">
+                            Inicial: {formatPrice(effectivePrice * (rates.defaultInitialPercent / 100))} + 3 cuotas
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Variants Selector */}
+                    {variantsList.length > 0 && (
+                      <div className="space-y-2">
+                        <label className="block text-[11px] font-black uppercase tracking-wider text-secondary flex items-center gap-1.5">
+                          <Layers className="w-4 h-4" /> Selecciona una Variante / Presentación:
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {variantsList.map((v: any, idx: number) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setSelectedVariantIdx(idx)}
+                              className={`px-4 py-2.5 rounded-xl text-xs font-black border transition-all flex items-center gap-2 ${
+                                selectedVariantIdx === idx
+                                  ? "bg-secondary text-white border-secondary shadow-lg shadow-secondary/20"
+                                  : "bg-white/5 text-white/70 border-white/10 hover:text-white"
+                              }`}
+                            >
+                              <span>{v.name}</span>
+                              {Number(v.price) > 0 && (
+                                <span className="font-mono opacity-90">
+                                  ({formatPrice(Number(v.price))})
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Full Description */}
+                    <div className="space-y-1.5">
+                      <h4 className="text-[11px] font-black uppercase tracking-wider text-white/50">
+                        Descripción del Producto
+                      </h4>
+                      <p className="text-sm text-white/80 leading-relaxed">
+                        {selectedProduct.description ||
+                          `Equipo de alto rendimiento perteneciente a la línea de ${selectedProduct.category}, seleccionado bajo estándares de ingeniería de Servicios y Suministros SP.`}
+                      </p>
+                    </div>
+
+                    {/* Technical Characteristics List */}
+                    <div className="space-y-2">
+                      <h4 className="text-[11px] font-black uppercase tracking-wider text-white/50">
+                        Características y Especificaciones Técnicas
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {featuresList.map((feat: string, idx: number) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 bg-white/[0.02] border border-white/5 px-3 py-2 rounded-xl text-xs text-white/90"
+                          >
+                            <CheckCircle2 className="w-4 h-4 text-secondary shrink-0" />
+                            <span>{feat}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
+                    <Button
+                      onClick={() => {
+                        handleAddToCart(selectedProduct, activeVariant || undefined)
+                        setSelectedProduct(null)
+                      }}
+                      className="flex-1 h-14 bg-secondary hover:bg-secondary/90 text-white font-black uppercase tracking-wider rounded-2xl gap-2 shadow-xl shadow-secondary/20"
+                    >
+                      <Plus className="w-5 h-5" /> Agregar a Solicitud
+                      {activeVariant ? ` (${activeVariant.name})` : ""}
+                    </Button>
+
+                    <Button
+                      onClick={() => handleWhatsApp(selectedProduct.name, activeVariant?.name)}
+                      className="h-14 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-wider rounded-2xl gap-2 px-6"
+                    >
+                      <MessageCircle className="w-5 h-5" /> Consultar en WhatsApp
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

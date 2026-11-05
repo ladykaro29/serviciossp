@@ -48,7 +48,22 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, sku, category, price, costPrice, stock, minStock, unit, brand, description, image, isActive } = body
+    const {
+      name,
+      sku,
+      category,
+      price,
+      costPrice,
+      stock,
+      minStock,
+      unit,
+      brand,
+      description,
+      features,
+      variants,
+      image,
+      isActive,
+    } = body
 
     if (!name || !category) {
       return NextResponse.json({ error: "El nombre y la categoría son requeridos" }, { status: 400 })
@@ -56,6 +71,10 @@ export async function POST(request: Request) {
 
     const initialStock = stock !== undefined ? parseInt(String(stock), 10) || 0 : 15
     const parsedCost = parseFloat(costPrice) || 0
+    const featuresStr =
+      typeof features === "string" ? features : JSON.stringify(Array.isArray(features) ? features : [])
+    const variantsStr =
+      typeof variants === "string" ? variants : JSON.stringify(Array.isArray(variants) ? variants : [])
 
     const newProduct = await prisma.product.create({
       data: {
@@ -69,6 +88,8 @@ export async function POST(request: Request) {
         unit: unit || "UND",
         brand: brand || "",
         description: description || "",
+        features: featuresStr,
+        variants: variantsStr,
         image: image || "/placeholder-product.png",
         isActive: isActive ?? true,
       },
