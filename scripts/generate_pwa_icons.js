@@ -43,3 +43,4 @@ async function makeIcons() {
 }
 
 makeIcons().catch(console.error);
+
