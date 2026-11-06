@@ -2,12 +2,18 @@
 
 import Image from "next/image"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { ShoppingCart, Menu, Mail, MapPin, Phone, Facebook, Instagram, Twitter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/context/CartContext"
 
 export function Header() {
     const { totalItems } = useCart()
+    const pathname = usePathname()
+
+    if (pathname?.startsWith("/admin")) {
+        return null
+    }
 
     return (
         <div className="w-full">
