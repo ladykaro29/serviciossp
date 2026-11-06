@@ -476,6 +476,63 @@ export default function AdminDashboard() {
     return (((binance - bcv) / bcv) * 100).toFixed(1)
   }, [settings])
 
+  // Documentos por vencer calculation (from reference)
+  const docsDueStats = useMemo(() => {
+    const now = new Date().getTime()
+    let vencidos = 0
+    let a7Dias = 0
+    let a30Dias = 0
+    let a60Dias = 0
+
+    const checkDoc = (dueDateStr?: string | null) => {
+      if (!dueDateStr) return
+      const due = new Date(dueDateStr).getTime()
+      const diffDays = Math.round((due - now) / (1000 * 60 * 60 * 24))
+      if (diffDays < 0) vencidos++
+      else if (diffDays <= 7) a7Dias++
+      else if (diffDays <= 30) a30Dias++
+      else if (diffDays <= 60) a60Dias++
+    }
+
+    receivables.forEach(r => checkDoc(r.dueDate))
+    payables.forEach(p => checkDoc(p.dueDate))
+
+    return { vencidos, a7Dias, a30Dias, a60Dias }
+  }, [receivables, payables])
+
+  // Tasa de cobro
+  const tasaCobroPct = useMemo(() => {
+    if (totalVentasBilled <= 0) return "0.0"
+    return Math.min(100, (totalCobrado / totalVentasBilled) * 100).toFixed(1)
+  }, [totalVentasBilled, totalCobrado])
+
+  // Smart inventory alerts (Sobrestock sin rotación from reference)
+  const [dismissedAlerts, setDismissedAlerts] = useState<string[]>([])
+  const smartAlerts = useMemo(() => {
+    const alerts: Array<{
+      id: string
+      title: string
+      productName: string
+      units: number
+      tiedCapital: number
+    }> = []
+
+    products.forEach(p => {
+      const stock = p.stock ?? 15
+      const cost = p.costPrice || p.price || 0
+      if (stock >= 3) {
+        alerts.push({
+          id: p.id,
+          title: `Sobrestock sin rotación: ${p.name}`,
+          productName: p.name,
+          units: stock,
+          tiedCapital: stock * cost,
+        })
+      }
+    })
+    return alerts
+  }, [products])
+
   const handleOpenCreate = () => {
     setModalMode("create")
     setFormData({
@@ -1210,11 +1267,62 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {/* Currency Pill */}
-            <div className="bg-[#071329] border border-blue-900/60 px-3 py-1 rounded-xl text-[11px] font-mono font-bold text-[#38bdf8] hidden md:flex items-center gap-1.5">
-              <span>USD</span>
-              <span className="text-white/30">=</span>
-              <span className="text-green-400">VES {(settings?.usdToBs || 65.5).toFixed(4)}</span>
+            {/* Multi-moneda Widget (Matching reference screenshot exactly) */}
+            <div className="hidden lg:flex items-center gap-3 bg-[#030917]/95 border border-[#1e293b] rounded-full px-4 py-1.5 text-xs shadow-inner">
+              <div className="flex items-center gap-1.5 text-orange-400 font-bold">
+                <Coins className="w-4 h-4 text-orange-400 shrink-0" />
+                <span className="text-white/80 font-semibold">Multi-moneda:</span>
+                <span className="text-orange-400 font-mono font-bold">1$ =</span>
+                <span className="text-emerald-400 font-mono font-black">Bs.{(settings?.usdToBs || 65.50).toFixed(2)}</span>
+                <span className="text-white/20 mx-1">|</span>
+                <span className="text-orange-400 font-mono font-bold">1€ =</span>
+                <span className="text-sky-400 font-mono font-black">Bs.{(settings?.eurToBs || 71.20).toFixed(2)}</span>
+                <button
+                  type="button"
+                  onClick={() => setEditingRates(!editingRates)}
+                  className="text-orange-400 hover:text-orange-300 ml-1 transition-transform hover:scale-110"
+                  title="Ajustar tasas manuales"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Currency Buttons (USD / BS / EUR) with orange active pill */}
+              <div className="flex items-center bg-[#071228] p-0.5 rounded-full border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setDisplayCurrency("USD")}
+                  className={`px-3 py-1 rounded-full text-[11px] font-black transition-all ${
+                    displayCurrency === "USD"
+                      ? "bg-[#ff5500] text-white shadow-[0_0_12px_rgba(255,85,0,0.5)]"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  USD
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDisplayCurrency("BS")}
+                  className={`px-3 py-1 rounded-full text-[11px] font-black transition-all ${
+                    displayCurrency === "BS"
+                      ? "bg-[#ff5500] text-white shadow-[0_0_12px_rgba(255,85,0,0.5)]"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  BS
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDisplayCurrency("EUR")}
+                  className={`px-3 py-1 rounded-full text-[11px] font-black transition-all ${
+                    displayCurrency === "EUR"
+                      ? "bg-[#ff5500] text-white shadow-[0_0_12px_rgba(255,85,0,0.5)]"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  EUR
+                </button>
+              </div>
             </div>
 
             {/* System Status / Activation Button */}
@@ -1570,6 +1678,206 @@ export default function AdminDashboard() {
                       Ver Catálogo Completo →
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* ====================================================================
+                  LOWER DASHBOARD WIDGETS (EXACT TO REFERENCE SCREENSHOT)
+                 ==================================================================== */}
+
+              {/* 1. DOCUMENTOS POR VENCER */}
+              <div className="bg-[#050e20] border border-white/5 rounded-3xl p-6 shadow-xl">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-yellow-400 text-sm">📁</span>
+                  <h3 className="text-sm font-bold text-white">Documentos por vencer</h3>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
+                  {/* Vencidos */}
+                  <div className="bg-[#030917] border border-red-900/30 rounded-2xl p-4 text-center">
+                    <div className="text-2xl font-black font-mono text-red-500">
+                      {docsDueStats.vencidos}
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-red-400/80 mt-1">
+                      VENCIDOS
+                    </div>
+                  </div>
+
+                  {/* A 7 Días */}
+                  <div className="bg-[#030917] border border-orange-900/30 rounded-2xl p-4 text-center">
+                    <div className="text-2xl font-black font-mono text-orange-400">
+                      {docsDueStats.a7Dias}
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-orange-400/80 mt-1">
+                      A 7 DÍAS
+                    </div>
+                  </div>
+
+                  {/* A 30 Días */}
+                  <div className="bg-[#030917] border border-amber-900/30 rounded-2xl p-4 text-center">
+                    <div className="text-2xl font-black font-mono text-amber-400">
+                      {docsDueStats.a30Dias}
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-amber-400/80 mt-1">
+                      A 30 DÍAS
+                    </div>
+                  </div>
+
+                  {/* A 60 Días */}
+                  <div className="bg-[#030917] border border-blue-900/30 rounded-2xl p-4 text-center">
+                    <div className="text-2xl font-black font-mono text-blue-400">
+                      {docsDueStats.a60Dias}
+                    </div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-blue-400/80 mt-1">
+                      A 60 DÍAS
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center text-xs text-white/30 py-2 border-t border-white/5">
+                  {docsDueStats.vencidos + docsDueStats.a7Dias + docsDueStats.a30Dias + docsDueStats.a60Dias === 0
+                    ? "Sin documentos por vencer"
+                    : "Tienes cuentas y facturas con vencimiento próximo"}
+                </div>
+              </div>
+
+              {/* 2. TASA DE COBRO & BALANCE COMERCIAL */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Tasa de Cobro (30D) */}
+                <div className="bg-[#050e20] border border-white/5 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                  <div className="text-[11px] font-black uppercase tracking-wider text-white/60 mb-4">
+                    TASA DE COBRO (30D)
+                  </div>
+
+                  <div className="space-y-4 my-2">
+                    <div className="text-3xl font-black font-mono text-emerald-400">
+                      {tasaCobroPct}%
+                    </div>
+                    {/* Glowing progress line */}
+                    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                        style={{ width: `${Math.max(5, Math.min(100, Number(tasaCobroPct)))}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-white/40 mt-3 border-t border-white/5 pt-3">
+                    De ${totalVentasBilled.toFixed(2)} facturado, cobrado ${totalCobrado.toFixed(2)}
+                  </div>
+                </div>
+
+                {/* Balance Comercial (30D) */}
+                <div className="bg-[#050e20] border border-white/5 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+                  <div className="text-[11px] font-black uppercase tracking-wider text-white/60 mb-4">
+                    BALANCE COMERCIAL (30D)
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-[10px] font-bold text-white/40 uppercase">Cobros (+)</div>
+                        <div className="text-lg font-mono font-black text-emerald-400">
+                          ${totalCobrado.toFixed(2)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold text-white/40 uppercase">Pagos (-)</div>
+                        <div className="text-lg font-mono font-black text-red-400">
+                          ${totalCxpBalance.toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/5 pt-3 flex items-center justify-between">
+                      <div>
+                        <div className="text-2xl font-black font-mono text-emerald-400">
+                          ${(totalCobrado - totalCxpBalance >= 0 ? totalCobrado - totalCxpBalance : 0).toFixed(2)}
+                        </div>
+                        <div className="text-[10px] font-bold text-emerald-400/90 flex items-center gap-1 mt-0.5">
+                          ▲ superávit
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. ALERTAS INTELIGENTES */}
+              <div className="bg-[#050e20] border border-white/5 rounded-3xl p-6 shadow-xl space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-400 text-sm">🔔</span>
+                    <h3 className="text-sm font-bold text-white">Alertas Inteligentes</h3>
+                    <span className="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full text-[10px] font-black">
+                      {smartAlerts.length} nuevas
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setDismissedAlerts(smartAlerts.map(a => a.id))}
+                      className="px-3 py-1.5 rounded-xl border border-white/10 text-white/60 hover:text-white text-xs font-semibold hover:bg-white/5 transition-all"
+                    >
+                      Marcar todas como leídas
+                    </button>
+                    <button
+                      onClick={() =>
+                        showMessage("success", "NexusCommerce AI: Inventario analizado. Tienes productos con capital inmovilizado listos para promoción.")
+                      }
+                      className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black shadow-lg shadow-blue-600/30 flex items-center gap-1.5 transition-all"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> Analizar negocio
+                    </button>
+                  </div>
+                </div>
+
+                {/* List of Smart Overstock / Opportunity Alerts */}
+                <div className="space-y-3">
+                  {smartAlerts
+                    .filter(a => !dismissedAlerts.includes(a.id))
+                    .map(alert => (
+                      <div
+                        key={alert.id}
+                        className="bg-[#030917] border border-white/5 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3 group hover:border-amber-500/30 transition-all"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 text-amber-400">
+                            <Package className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                                {alert.title}
+                              </span>
+                              <span className="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.2 rounded font-mono">
+                                info
+                              </span>
+                            </div>
+                            <p className="text-xs text-white/50 mt-1">
+                              {alert.productName} tiene {alert.units} unidades SIN ventas en 30 días. Capital inmovilizado:{" "}
+                              <strong className="text-white">${alert.tiedCapital.toFixed(2)} USD</strong>.
+                            </p>
+                            <button
+                              onClick={() => {
+                                setActiveTab("ventas")
+                                showMessage("success", `Cargando ${alert.productName} en el Punto de Venta para aplicar descuento.`)
+                              }}
+                              className="text-xs text-blue-400 hover:text-blue-300 font-bold mt-2 inline-flex items-center gap-1"
+                            >
+                              → Considera promoción, descuento o liquidación de {alert.productName}
+                            </button>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => setDismissedAlerts(prev => [...prev, alert.id])}
+                          className="text-white/30 hover:text-white p-1 rounded-lg self-start"
+                          title="Descartar alerta"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
                 </div>
               </div>
 
