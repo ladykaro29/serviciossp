@@ -362,7 +362,7 @@ export async function POST(request: Request) {
         initialPercent,
         installmentsCount,
         frequencyDays,
-        surchargePercent, // % recargo por financiamiento (opcional, ej. 25% como Nexus Commerce o 0%)
+        surchargePercent, // % recargo por financiamiento (opcional, ej. 25% o 0%)
         notes,
       } = payload
 

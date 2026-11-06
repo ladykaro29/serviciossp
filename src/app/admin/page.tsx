@@ -1004,7 +1004,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#030712] text-white font-sans flex flex-col md:flex-row overflow-x-hidden relative">
       {/* ====================================================================
-          1. LEFT SIDEBAR (EXACT NEXUSCOMMERCE / SP ERP LAYOUT - FIRMLY ON THE LEFT)
+          1. LEFT SIDEBAR (EXACT KICK-OFF COMMERCE / SP ERP LAYOUT - FIRMLY ON THE LEFT)
          ==================================================================== */}
       {/* Mobile Backdrop */}
       {sidebarOpen && (
@@ -1024,10 +1024,10 @@ export default function AdminDashboard() {
           <div className="p-4 flex items-center justify-between border-b border-white/5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-yellow-300 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.35)] font-black text-slate-950 text-xl tracking-tighter">
-                N
+                K
               </div>
               <div>
-                <span className="font-black text-sm tracking-tight text-white block leading-tight">NexusCommerce</span>
+                <span className="font-black text-sm tracking-tight text-white block leading-tight">kick-off Commerce</span>
                 <span className="text-[10px] text-white/40 tracking-wider font-semibold block">Servicios SP ERP</span>
               </div>
             </div>
@@ -1838,7 +1838,7 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  window.open("https://wa.me/584147550091?text=Hola,%20requiero%20soporte%20tecnico%20con%20NexusCommerce%20Servicios%20SP", "_blank")
+                  window.open("https://wa.me/584147550091?text=Hola,%20requiero%20soporte%20tecnico%20con%20kick-off%20Commerce%20Servicios%20SP", "_blank")
                   setSidebarOpen(false)
                 }}
                 className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
@@ -1877,7 +1877,7 @@ export default function AdminDashboard() {
           2. RIGHT MAIN CONTAINER & APP BAR
          ==================================================================== */}
       <div className="flex-1 flex flex-col min-w-0 bg-[#030712] min-h-screen">
-        {/* Top App Bar (NexusCommerce Style) */}
+        {/* Top App Bar (kick-off Commerce Style) */}
         <header className="sticky top-0 z-30 bg-[#040914] border-b border-white/5 px-4 sm:px-6 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-6">
             <button
@@ -1889,7 +1889,7 @@ export default function AdminDashboard() {
 
             {/* Breadcrumb */}
             <div className="text-xs font-semibold text-white/40 flex items-center gap-1.5">
-              <span>NexusCommerce</span>
+              <span>kick-off Commerce</span>
               <span>&gt;</span>
               <span className="text-white font-bold capitalize">{activeTab}</span>
             </div>
@@ -2151,7 +2151,7 @@ export default function AdminDashboard() {
                   {greetingText}, Administrador 👋
                 </div>
                 <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight">
-                  NexusCommerce
+                  kick-off Commerce
                 </h1>
                 <div className="text-xs text-white/40 font-semibold tracking-wide capitalize">
                   {currentDateFormatted}
@@ -2535,7 +2535,7 @@ export default function AdminDashboard() {
                     </button>
                     <button
                       onClick={() =>
-                        showMessage("success", "NexusCommerce AI: Inventario analizado. Tienes productos con capital inmovilizado listos para promoción.")
+                        showMessage("success", "kick-off Commerce AI: Inventario analizado. Tienes productos con capital inmovilizado listos para promoción.")
                       }
                       className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black shadow-lg shadow-blue-600/30 flex items-center gap-1.5 transition-all"
                     >
@@ -2597,7 +2597,7 @@ export default function AdminDashboard() {
               {/* Floating Assistant Widget (Bot on bottom-right) */}
               <div className="fixed bottom-5 right-5 z-40">
                 <button
-                  onClick={() => alert("Asistente NexusCommerce / SP Cloud activo y sincronizado con inventario y facturación.")}
+                  onClick={() => alert("Asistente kick-off Commerce / SP Cloud activo y sincronizado con inventario y facturación.")}
                   className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.6)] border border-blue-400/40 flex items-center gap-2 transition-all hover:scale-105"
                 >
                   <Bot className="w-4 h-4" /> Inicio rápido - 0%

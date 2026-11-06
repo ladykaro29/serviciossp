@@ -2861,7 +2861,7 @@ export function SalesAndFinanceModules({
                     <Sparkles className="w-5 h-5 text-yellow-300" /> Compras Predictivas — Reposición Sugerida de Almacén
                   </h3>
                   <p className="text-xs text-white/50 mt-0.5">
-                    Algoritmo Nexus ERP: Analiza productos con stock bajo o cerca del mínimo de seguridad y calcula el pedido óptimo para evitar rotura de stock.
+                    Algoritmo kick-off Commerce ERP: Analiza productos con stock bajo o cerca del mínimo de seguridad y calcula el pedido óptimo para evitar rotura de stock.
                   </p>
                 </div>
 
