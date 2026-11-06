@@ -23,6 +23,23 @@ import { Button } from "@/components/ui/button"
 import { products as initialProducts } from "@/lib/data/products"
 import { useCart } from "@/context/CartContext"
 
+function normalizeFeature(feat: any): string {
+  if (typeof feat === "string") return feat
+  if (typeof feat === "number") return String(feat)
+  if (typeof feat === "object" && feat !== null) {
+    if (feat.label && feat.value) return `${feat.label}: ${feat.value}`
+    if (feat.value) return String(feat.value)
+    if (feat.label) return String(feat.label)
+    if (feat.name) return String(feat.name)
+    try {
+      return JSON.stringify(feat)
+    } catch {
+      return ""
+    }
+  }
+  return String(feat ?? "")
+}
+
 function parseJsonArray(raw: any): any[] {
   if (Array.isArray(raw)) return raw
   if (typeof raw === "string" && raw.trim() !== "") {
@@ -37,14 +54,16 @@ function parseJsonArray(raw: any): any[] {
 }
 
 function getEffectiveFeatures(product: any): string[] {
-  const custom = parseJsonArray(product.features)
-  if (custom.length > 0) return custom
+  const custom = parseJsonArray(product?.features)
+  if (custom.length > 0) {
+    return custom.map(normalizeFeature).filter(Boolean)
+  }
 
   // Generar características técnicas automáticas cuando aún no se han personalizado
   const fallback: string[] = []
-  if (product.brand) fallback.push(`Marca / Especificación: ${product.brand}`)
-  if (product.category) fallback.push(`Línea: ${product.category}`)
-  const specsMatch = String(product.name || "").match(/\b(\d+(?:W|V|Ah|kVA|kW|MP|K|m|A|Hz|\-\d+V))\b/gi)
+  if (product?.brand) fallback.push(`Marca / Especificación: ${product.brand}`)
+  if (product?.category) fallback.push(`Línea: ${product.category}`)
+  const specsMatch = String(product?.name || "").match(/\b(\d+(?:W|V|Ah|kVA|kW|MP|K|m|A|Hz|\-\d+V))\b/gi)
   if (specsMatch && specsMatch.length > 0) {
     fallback.push(`Capacidad / Rango: ${Array.from(new Set(specsMatch)).join(" · ")}`)
   }
@@ -120,16 +139,19 @@ export default function ProductosPage() {
 
   const filteredProducts = useMemo(() => {
     return productList.filter(product => {
-      const brandStr = product.brand || ""
-      const skuStr = product.sku || ""
-      const descStr = product.description || ""
-      const q = searchQuery.toLowerCase()
+      const nameStr = String(product?.name || "")
+      const brandStr = String(product?.brand || "")
+      const skuStr = String(product?.sku || "")
+      const descStr = String(product?.description || "")
+      const q = searchQuery.toLowerCase().trim()
+      if (!q && selectedCategory === "Todos") return true
       const matchesSearch =
-        product.name.toLowerCase().includes(q) ||
+        !q ||
+        nameStr.toLowerCase().includes(q) ||
         brandStr.toLowerCase().includes(q) ||
         skuStr.toLowerCase().includes(q) ||
         descStr.toLowerCase().includes(q)
-      const matchesCategory = selectedCategory === "Todos" || product.category === selectedCategory
+      const matchesCategory = selectedCategory === "Todos" || product?.category === selectedCategory
       return matchesSearch && matchesCategory
     })
   }, [productList, searchQuery, selectedCategory])
@@ -372,12 +394,15 @@ export default function ProductosPage() {
                       {/* Key Characteristics Preview */}
                       {featuresList.length > 0 && (
                         <div className="space-y-1 mb-4">
-                          {featuresList.slice(0, 2).map((feat: string, i: number) => (
-                            <div key={i} className="flex items-center gap-1.5 text-[11px] text-foreground/75 truncate">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-secondary shrink-0" />
-                              <span className="truncate">{feat}</span>
-                            </div>
-                          ))}
+                          {featuresList.slice(0, 2).map((feat: any, i: number) => {
+                            const featText = typeof feat === "object" ? normalizeFeature(feat) : String(feat)
+                            return (
+                              <div key={i} className="flex items-center gap-1.5 text-[11px] text-foreground/75 truncate">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-secondary shrink-0" />
+                                <span className="truncate">{featText}</span>
+                              </div>
+                            )
+                          })}
                         </div>
                       )}
 
@@ -591,25 +616,29 @@ export default function ProductosPage() {
                           <Layers className="w-4 h-4" /> Selecciona una Variante / Presentación:
                         </label>
                         <div className="flex flex-wrap gap-2">
-                          {variantsList.map((v: any, idx: number) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              onClick={() => setSelectedVariantIdx(idx)}
-                              className={`px-4 py-2.5 rounded-xl text-xs font-black border transition-all flex items-center gap-2 ${
-                                selectedVariantIdx === idx
-                                  ? "bg-secondary text-white border-secondary shadow-lg shadow-secondary/20"
-                                  : "bg-white/5 text-white/70 border-white/10 hover:text-white"
-                              }`}
-                            >
-                              <span>{v.name}</span>
-                              {Number(v.price) > 0 && (
-                                <span className="font-mono opacity-90">
-                                  ({formatPrice(Number(v.price))})
-                                </span>
-                              )}
-                            </button>
-                          ))}
+                          {variantsList.map((v: any, idx: number) => {
+                            const vName = typeof v === "object" ? (v?.name || `Opción ${idx + 1}`) : String(v)
+                            const vPrice = typeof v === "object" ? Number(v?.price || 0) : 0
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setSelectedVariantIdx(idx)}
+                                className={`px-4 py-2.5 rounded-xl text-xs font-black border transition-all flex items-center gap-2 ${
+                                  selectedVariantIdx === idx
+                                    ? "bg-secondary text-white border-secondary shadow-lg shadow-secondary/20"
+                                    : "bg-white/5 text-white/70 border-white/10 hover:text-white"
+                                }`}
+                              >
+                                <span>{vName}</span>
+                                {vPrice > 0 && (
+                                  <span className="font-mono opacity-90">
+                                    ({formatPrice(vPrice)})
+                                  </span>
+                                )}
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -635,17 +664,21 @@ export default function ProductosPage() {
                           </h4>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {bundleList.map((item: any, idx: number) => (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-2.5 bg-[#020813]/90 border border-purple-500/20 px-3 py-2 rounded-xl text-xs"
-                            >
-                              <span className="w-6 h-6 rounded-lg bg-purple-500/25 text-purple-300 font-mono font-black text-xs flex items-center justify-center shrink-0">
-                                x{item.quantity || 1}
-                              </span>
-                              <span className="font-bold text-white leading-tight">{item.name}</span>
-                            </div>
-                          ))}
+                          {bundleList.map((item: any, idx: number) => {
+                            const itemName = typeof item === "object" ? (item?.name || `Componente ${idx + 1}`) : String(item)
+                            const itemQty = typeof item === "object" ? (item?.quantity || 1) : 1
+                            return (
+                              <div
+                                key={idx}
+                                className="flex items-center gap-2.5 bg-[#020813]/90 border border-purple-500/20 px-3 py-2 rounded-xl text-xs"
+                              >
+                                <span className="w-6 h-6 rounded-lg bg-purple-500/25 text-purple-300 font-mono font-black text-xs flex items-center justify-center shrink-0">
+                                  x{itemQty}
+                                </span>
+                                <span className="font-bold text-white leading-tight">{itemName}</span>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -656,15 +689,18 @@ export default function ProductosPage() {
                         Características y Especificaciones Técnicas
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {featuresList.map((feat: string, idx: number) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-2 bg-white/[0.02] border border-white/5 px-3 py-2 rounded-xl text-xs text-white/90"
-                          >
-                            <CheckCircle2 className="w-4 h-4 text-secondary shrink-0" />
-                            <span>{feat}</span>
-                          </div>
-                        ))}
+                        {featuresList.map((feat: any, idx: number) => {
+                          const featText = typeof feat === "object" ? normalizeFeature(feat) : String(feat)
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2 bg-white/[0.02] border border-white/5 px-3 py-2 rounded-xl text-xs text-white/90"
+                            >
+                              <CheckCircle2 className="w-4 h-4 text-secondary shrink-0" />
+                              <span>{featText}</span>
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
                   </div>

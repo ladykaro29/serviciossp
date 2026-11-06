@@ -625,8 +625,15 @@ export default function AdminDashboard() {
     let parsedVariants: Array<{ name: string; price: number; stock: number }> = []
     let parsedBundleItems: Array<{ productId?: string; name: string; quantity: number; unitCost?: number; unitPrice?: number }> = []
     try {
-      parsedFeatures = JSON.parse(product.features || "[]")
-      if (!Array.isArray(parsedFeatures)) parsedFeatures = []
+      const rawFeatures = JSON.parse(product.features || "[]")
+      if (Array.isArray(rawFeatures)) {
+        parsedFeatures = rawFeatures.map((f: any) => {
+          if (typeof f === "object" && f !== null) {
+            return f.label && f.value ? `${f.label}: ${f.value}` : (f.value || f.label || JSON.stringify(f))
+          }
+          return String(f)
+        })
+      }
     } catch {
       parsedFeatures = []
     }
@@ -3666,7 +3673,7 @@ export default function AdminDashboard() {
                         className="inline-flex items-center gap-1.5 bg-[#020813] border border-white/10 px-3 py-1.5 rounded-xl text-xs text-white/90"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 text-secondary shrink-0" />
-                        <span>{feat}</span>
+                        <span>{typeof feat === "object" && feat !== null ? ((feat as any).label && (feat as any).value ? `${(feat as any).label}: ${(feat as any).value}` : JSON.stringify(feat)) : String(feat)}</span>
                         <button
                           type="button"
                           onClick={() =>
