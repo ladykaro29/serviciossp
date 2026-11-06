@@ -926,7 +926,7 @@ export async function POST(request: Request) {
 
     // 8. CRM CUSTOMERS
     if (action === "SAVE_CUSTOMER") {
-      const { id, name, document, phone, email, city, address, type, stage, creditLimit, notes } = payload
+      const { id, name, document, phone, email, city, address, birthdate, type, stage, creditLimit, notes } = payload
       if (id) {
         const updated = await prisma.customer.update({
           where: { id },
@@ -937,6 +937,7 @@ export async function POST(request: Request) {
             email: email || "",
             city: city || "El Vigía",
             address: address || "",
+            birthdate: birthdate || "",
             type: type || "PERSONA",
             stage: stage || "CLIENTE",
             creditLimit: parseFloat(creditLimit) || 500,
@@ -953,6 +954,7 @@ export async function POST(request: Request) {
             email: email || "",
             city: city || "El Vigía",
             address: address || "",
+            birthdate: birthdate || "",
             type: type || "PERSONA",
             stage: stage || "PROSPECTO",
             creditLimit: parseFloat(creditLimit) || 500,

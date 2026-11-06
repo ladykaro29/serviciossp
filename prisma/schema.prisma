@@ -98,6 +98,7 @@ model Customer {
   email       String?  @default("")
   city        String?  @default("El Vigía")
   address     String?  @default("")
+  birthdate   String?  @default("") // Fecha de nacimiento (YYYY-MM-DD) para recordatorios y gift cards
   type        String   @default("PERSONA") // PERSONA, EMPRESA, MAYORISTA
   stage       String   @default("CLIENTE") // PROSPECTO, COTIZADO, CLIENTE, VIP
   creditLimit Float    @default(500)

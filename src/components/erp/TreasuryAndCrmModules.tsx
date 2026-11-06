@@ -19,6 +19,10 @@ import {
   Coins,
   UserCheck,
   Loader2,
+  Cake,
+  Gift,
+  Sparkles,
+  Calendar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -109,6 +113,7 @@ export function TreasuryAndCrmModules({
     phone: "",
     email: "",
     city: "El Vigía",
+    birthdate: "",
     type: "PERSONA",
     stage: "CLIENTE",
     creditLimit: 500,
@@ -235,6 +240,7 @@ export function TreasuryAndCrmModules({
           phone: "",
           email: "",
           city: "El Vigía",
+          birthdate: "",
           type: "PERSONA",
           stage: "CLIENTE",
           creditLimit: 500,
@@ -245,6 +251,48 @@ export function TreasuryAndCrmModules({
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // Birthday calculation helper
+  const getBirthdayStatus = (birthdateStr?: string) => {
+    if (!birthdateStr) return null
+    const parts = birthdateStr.split("-")
+    if (parts.length < 3) return null
+    const month = parseInt(parts[1], 10) - 1
+    const day = parseInt(parts[2], 10)
+    const today = new Date()
+    const currentMonth = today.getMonth()
+    const currentDay = today.getDate()
+
+    if (month === currentMonth && day === currentDay) {
+      return { isToday: true, daysLeft: 0, text: "¡Cumpleaños Hoy! 🎉🎂" }
+    }
+
+    let nextBday = new Date(today.getFullYear(), month, day)
+    if (nextBday < today) {
+      nextBday = new Date(today.getFullYear() + 1, month, day)
+    }
+    const diffTime = nextBday.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    return {
+      isToday: false,
+      daysLeft: diffDays,
+      isThisMonth: month === currentMonth,
+      text: diffDays <= 30 ? `En ${diffDays} días (${day}/${month + 1})` : `${day}/${month + 1}`,
+    }
+  }
+
+  // Generate WhatsApp felicitation message with gift card
+  const handleSendBirthdayGiftcard = (cust: any) => {
+    const giftCode = `SP-GIFT-${Math.floor(1000 + Math.random() * 9000)}`
+    const phone = (cust.phone || "").replace(/\D/g, "")
+    const targetPhone = phone.startsWith("58") ? phone : phone ? `58${phone}` : "584147550091"
+    const text = encodeURIComponent(
+      `¡Hola ${cust.name}! 🎂✨\n\nDe parte de todo el equipo de *Servicios y Suministros SP* te deseamos un muy Feliz Cumpleaños. 🎉\n\nPara celebrarlo contigo, te obsequiamos esta *Gift Card Especial de $10 USD de Descuento* en tu próxima compra o servicio técnico.\n\n🎟️ Código de Gift Card: *${giftCode}*\n📍 Válido en nuestra tienda o servicio a domicilio.\n\n¡Que tengas un excelente día lleno de éxitos!`
+    )
+    window.open(`https://wa.me/${targetPhone}?text=${text}`, "_blank")
+    showMessage("success", `¡Gift card ${giftCode} generada y abierta en WhatsApp para ${cust.name}!`)
   }
 
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -867,78 +915,249 @@ export function TreasuryAndCrmModules({
           </div>
         ) : (
           /* Directorio CRM Clientes */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <form
-              onSubmit={handleSaveCustomer}
-              className="lg:col-span-4 bg-[#041124]/80 p-6 rounded-3xl border border-white/10 space-y-3.5 h-fit"
-            >
-              <h3 className="text-lg font-black text-white">Nuevo Cliente CRM</h3>
-              <input
-                type="text"
-                required
-                placeholder="Nombre Completo o Empresa *"
-                value={custForm.name}
-                onChange={e => setCustForm({ ...custForm, name: e.target.value })}
-                className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
-              />
-              <input
-                type="text"
-                placeholder="Cédula o RIF"
-                value={custForm.document}
-                onChange={e => setCustForm({ ...custForm, document: e.target.value })}
-                className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
-              />
-              <input
-                type="text"
-                placeholder="Teléfono / WhatsApp"
-                value={custForm.phone}
-                onChange={e => setCustForm({ ...custForm, phone: e.target.value })}
-                className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={custForm.type}
-                  onChange={e => setCustForm({ ...custForm, type: e.target.value })}
-                  className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
-                >
-                  <option value="PERSONA" className="bg-[#041124]">Persona</option>
-                  <option value="EMPRESA" className="bg-[#041124]">Empresa</option>
-                  <option value="MAYORISTA" className="bg-[#041124]">Mayorista / Instalador</option>
-                </select>
-                <select
-                  value={custForm.stage}
-                  onChange={e => setCustForm({ ...custForm, stage: e.target.value })}
-                  className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
-                >
-                  <option value="PROSPECTO" className="bg-[#041124]">Prospecto</option>
-                  <option value="COTIZADO" className="bg-[#041124]">Cotizado</option>
-                  <option value="CLIENTE" className="bg-[#041124]">Cliente Activo</option>
-                  <option value="VIP" className="bg-[#041124]">Cliente VIP</option>
-                </select>
-              </div>
-              <Button type="submit" disabled={submitting} className="w-full bg-secondary text-white font-black rounded-xl">
-                Guardar en CRM
-              </Button>
-            </form>
-
-            <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {customers.map(c => (
-                <div key={c.id} className="bg-[#041124]/50 p-5 rounded-3xl border border-white/10 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-secondary/20 text-secondary">
-                      {c.type} · {c.stage}
-                    </span>
-                    <span className="text-xs font-mono text-white/50">{c.document || "Sin CI/RIF"}</span>
+          <div className="space-y-6">
+            {/* Widget de Cumpleañeros del Mes & Fidelización */}
+            <div className="p-5 rounded-3xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
+                    <Cake className="w-5 h-5 text-amber-400 animate-bounce" />
                   </div>
-                  <h4 className="text-lg font-black text-white">{c.name}</h4>
-                  <div className="text-xs text-white/60">
-                    📞 {c.phone || "—"} | 📍 {c.city || "El Vigía"}
-                  </div>
-                  <div className="text-xs font-mono text-green-400">
-                    Límite de Crédito: ${c.creditLimit?.toFixed(2) || "500.00"} USD
+                  <div>
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      Cumpleañeros del Mes & Fidelización
+                      <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">
+                        Gift Cards & Promos
+                      </span>
+                    </h3>
+                    <p className="text-xs text-white/60">
+                      Envía felicitaciones automáticas por WhatsApp con código de Gift Card ($10 USD de regalo).
+                    </p>
                   </div>
                 </div>
-              ))}
+                <div className="text-right">
+                  <span className="text-xs font-mono text-amber-400 font-bold">
+                    {customers.filter(c => getBirthdayStatus(c.birthdate)?.isThisMonth || getBirthdayStatus(c.birthdate)?.isToday).length} en este mes
+                  </span>
+                </div>
+              </div>
+
+              {customers.filter(c => getBirthdayStatus(c.birthdate)?.isThisMonth || getBirthdayStatus(c.birthdate)?.isToday).length === 0 ? (
+                <div className="bg-white/5 border border-white/5 rounded-2xl p-4 text-center text-xs text-white/50">
+                  No hay cumpleañeros registrados en el mes actual. Registra la fecha de nacimiento de tus clientes en el formulario.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {customers
+                    .filter(c => getBirthdayStatus(c.birthdate)?.isThisMonth || getBirthdayStatus(c.birthdate)?.isToday)
+                    .map(c => {
+                      const bday = getBirthdayStatus(c.birthdate)
+                      return (
+                        <div
+                          key={c.id}
+                          className={`p-3.5 rounded-2xl border transition-all ${
+                            bday?.isToday
+                              ? "bg-amber-500/20 border-amber-500/60 shadow-lg shadow-amber-500/10"
+                              : "bg-white/5 border-white/10"
+                          }`}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-bold text-white text-sm">{c.name}</h4>
+                              <p className="text-[11px] text-white/60">📞 {c.phone || "Sin teléfono"}</p>
+                            </div>
+                            <span
+                              className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                                bday?.isToday
+                                  ? "bg-amber-500 text-slate-950 animate-pulse font-extrabold"
+                                  : "bg-amber-500/20 text-amber-300"
+                              }`}
+                            >
+                              {bday?.text}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleSendBirthdayGiftcard(c)}
+                            className="w-full mt-2 py-1.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 transition-all shadow-md"
+                          >
+                            <Gift className="w-3.5 h-3.5" /> Enviar Gift Card WhatsApp
+                          </button>
+                        </div>
+                      )
+                    })}
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <form
+                onSubmit={handleSaveCustomer}
+                className="lg:col-span-4 bg-[#041124]/80 p-6 rounded-3xl border border-white/10 space-y-3.5 h-fit"
+              >
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-black text-white">{custForm.id ? "Editar Cliente" : "Nuevo Cliente CRM"}</h3>
+                  {custForm.id && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCustForm({
+                          id: "",
+                          name: "",
+                          document: "",
+                          phone: "",
+                          email: "",
+                          city: "El Vigía",
+                          birthdate: "",
+                          type: "PERSONA",
+                          stage: "CLIENTE",
+                          creditLimit: 500,
+                          notes: "",
+                        })
+                      }
+                      className="text-[10px] text-white/50 hover:text-white"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  required
+                  placeholder="Nombre Completo o Empresa *"
+                  value={custForm.name}
+                  onChange={e => setCustForm({ ...custForm, name: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
+                />
+                <input
+                  type="text"
+                  placeholder="Cédula o RIF"
+                  value={custForm.document}
+                  onChange={e => setCustForm({ ...custForm, document: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
+                />
+                <input
+                  type="text"
+                  placeholder="Teléfono / WhatsApp"
+                  value={custForm.phone}
+                  onChange={e => setCustForm({ ...custForm, phone: e.target.value })}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
+                />
+                
+                {/* Campo Fecha de Nacimiento para Cumpleaños */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-amber-400 flex items-center gap-1.5">
+                    <Cake className="w-3.5 h-3.5 text-amber-400" /> Fecha de Nacimiento (Cumpleaños)
+                  </label>
+                  <input
+                    type="date"
+                    value={custForm.birthdate || ""}
+                    onChange={e => setCustForm({ ...custForm, birthdate: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
+                  />
+                  <p className="text-[10px] text-white/40">Usado para recordatorios y gift cards de regalo en tienda/POS.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={custForm.type}
+                    onChange={e => setCustForm({ ...custForm, type: e.target.value })}
+                    className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
+                  >
+                    <option value="PERSONA" className="bg-[#041124]">Persona</option>
+                    <option value="EMPRESA" className="bg-[#041124]">Empresa</option>
+                    <option value="MAYORISTA" className="bg-[#041124]">Mayorista / Instalador</option>
+                  </select>
+                  <select
+                    value={custForm.stage}
+                    onChange={e => setCustForm({ ...custForm, stage: e.target.value })}
+                    className="bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white"
+                  >
+                    <option value="PROSPECTO" className="bg-[#041124]">Prospecto</option>
+                    <option value="COTIZADO" className="bg-[#041124]">Cotizado</option>
+                    <option value="CLIENTE" className="bg-[#041124]">Cliente Activo</option>
+                    <option value="VIP" className="bg-[#041124]">Cliente VIP</option>
+                  </select>
+                </div>
+                <Button type="submit" disabled={submitting} className="w-full bg-secondary text-white font-black rounded-xl">
+                  {custForm.id ? "Actualizar Cliente" : "Guardar en CRM"}
+                </Button>
+              </form>
+
+              <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {customers.map(c => {
+                  const bday = getBirthdayStatus(c.birthdate)
+                  return (
+                    <div key={c.id} className="bg-[#041124]/50 p-5 rounded-3xl border border-white/10 space-y-3 relative group">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-secondary/20 text-secondary">
+                          {c.type} · {c.stage}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-white/50">{c.document || "Sin CI/RIF"}</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCustForm({
+                                id: c.id,
+                                name: c.name || "",
+                                document: c.document || "",
+                                phone: c.phone || "",
+                                email: c.email || "",
+                                city: c.city || "El Vigía",
+                                birthdate: c.birthdate || "",
+                                type: c.type || "PERSONA",
+                                stage: c.stage || "CLIENTE",
+                                creditLimit: c.creditLimit || 500,
+                                notes: c.notes || "",
+                              })
+                            }
+                            className="text-[10px] text-white/40 hover:text-white px-2 py-0.5 rounded bg-white/5"
+                          >
+                            Editar
+                          </button>
+                        </div>
+                      </div>
+                      <h4 className="text-lg font-black text-white">{c.name}</h4>
+                      <div className="text-xs text-white/60">
+                        📞 {c.phone || "—"} | 📍 {c.city || "El Vigía"}
+                      </div>
+
+                      {/* Birthday Status Indicator */}
+                      <div className="p-2 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between text-xs">
+                        <span className="text-white/60 flex items-center gap-1.5 text-[11px]">
+                          <Cake className="w-3.5 h-3.5 text-amber-400" />
+                          {c.birthdate ? `Nacimiento: ${c.birthdate}` : "Sin fecha nacimiento"}
+                        </span>
+                        {bday && (
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              bday.isToday
+                                ? "bg-amber-500 text-slate-950 animate-pulse font-extrabold"
+                                : "bg-amber-500/20 text-amber-300"
+                            }`}
+                          >
+                            {bday.text}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-xs font-mono text-green-400">
+                        Límite de Crédito: ${c.creditLimit?.toFixed(2) || "500.00"} USD
+                      </div>
+
+                      {/* 1-Click WhatsApp Gift Card Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleSendBirthdayGiftcard(c)}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all"
+                      >
+                        <Gift className="w-3.5 h-3.5 text-amber-400" /> Enviar Gift Card WhatsApp
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
         )}

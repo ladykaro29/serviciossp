@@ -32,6 +32,7 @@ import {
   Store,
   Tag,
   Gift,
+  Cake,
   X,
   Coins,
   Sparkles,
@@ -357,6 +358,44 @@ export function SalesAndFinanceModules({
   const posSubtotalAfterDiscount = Math.max(0, posSubtotal - (Number(posDiscount) || 0))
   const posTax = posApplyTax ? Number((posSubtotalAfterDiscount * ((settings?.ivaPercent || 16) / 100)).toFixed(2)) : 0
   const posBaseTotal = Number((posSubtotalAfterDiscount + posTax).toFixed(2))
+
+  // Birthday calculation helper for POS Customer Loyalty & Gift Cards
+  const getPosCustomerBirthday = () => {
+    if (!posCustomerName || posCustomerName === "Consumidor Final") return null
+    const cust = customers.find(
+      c => (posSelectedCustomerId && posSelectedCustomerId !== "final" && c.id === posSelectedCustomerId) || c.name === posCustomerName
+    )
+    if (!cust || !cust.birthdate) return null
+    const parts = cust.birthdate.split("-")
+    if (parts.length < 3) return null
+    const month = parseInt(parts[1], 10) - 1
+    const day = parseInt(parts[2], 10)
+    const today = new Date()
+    const currentMonth = today.getMonth()
+    const currentDay = today.getDate()
+
+    if (month === currentMonth && day === currentDay) {
+      return { isToday: true, daysLeft: 0, customer: cust, text: "¡Hoy es su Cumpleaños! 🎉🎂" }
+    }
+
+    let nextBday = new Date(today.getFullYear(), month, day)
+    if (nextBday < today) {
+      nextBday = new Date(today.getFullYear() + 1, month, day)
+    }
+    const diffTime = nextBday.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays <= 7) {
+      return {
+        isToday: false,
+        isUpcoming: true,
+        daysLeft: diffDays,
+        customer: cust,
+        text: `Cumpleaños en ${diffDays} días (${day}/${month + 1})`,
+      }
+    }
+    return null
+  }
   const posSurcharge =
     posPaymentCondition === "CREDITO" && posSurchargePercent > 0
       ? Number((posBaseTotal * (posSurchargePercent / 100)).toFixed(2))
@@ -1516,6 +1555,7 @@ export function SalesAndFinanceModules({
                         <div className="absolute top-full left-0 right-0 mt-1 bg-[#040e24] border border-white/15 rounded-2xl p-2 shadow-2xl z-30 space-y-1">
                           <div
                             onClick={() => {
+                              setPosSelectedCustomerId("final")
                               setPosCustomerName("Consumidor Final")
                               setPosCustomerDoc("V-00000000")
                               setPosCustomerPhone("")
@@ -1531,6 +1571,7 @@ export function SalesAndFinanceModules({
                             <div
                               key={c.id}
                               onClick={() => {
+                                setPosSelectedCustomerId(c.id)
                                 setPosCustomerName(c.name)
                                 setPosCustomerDoc(c.document || "")
                                 setPosCustomerPhone(c.phone || "")
@@ -1539,7 +1580,14 @@ export function SalesAndFinanceModules({
                               }}
                               className="p-2 rounded-xl hover:bg-white/5 cursor-pointer text-xs text-white/90 flex items-center justify-between"
                             >
-                              <span className="truncate">{c.name}</span>
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="truncate">{c.name}</span>
+                                {c.birthdate && (
+                                  <span className="text-[10px] text-amber-400 flex items-center gap-0.5">
+                                    <Cake className="w-2.5 h-2.5" />
+                                  </span>
+                                )}
+                              </div>
                               <span className="text-[10px] text-white/40 font-mono">{c.document}</span>
                             </div>
                           ))}
@@ -1668,6 +1716,53 @@ export function SalesAndFinanceModules({
                         />
                       </div>
                     </div>
+
+                    {/* Birthday & Gift Card POS Alert Banner */}
+                    {(() => {
+                      const bday = getPosCustomerBirthday()
+                      if (!bday) return null
+                      return (
+                        <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-pink-500/10 to-amber-500/20 border border-amber-500/40 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-black text-amber-300 flex items-center gap-1.5 text-[11px]">
+                              <Cake className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
+                              {bday.text}
+                            </span>
+                            <span className="text-[10px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded uppercase">
+                              GIFT CARD
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPosDiscount(10)
+                                showMessage("success", "¡Gift Card de $10 USD de cumpleaños aplicada al ticket!")
+                              }}
+                              className="flex-1 py-1.5 px-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[11px] flex items-center justify-center gap-1 shadow-sm transition-all"
+                            >
+                              <Gift className="w-3.5 h-3.5" /> Aplicar $10 Gift Card
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const giftCode = `SP-GIFT-${Math.floor(1000 + Math.random() * 9000)}`
+                                const phone = (bday.customer.phone || posCustomerPhone || "").replace(/\D/g, "")
+                                const targetPhone = phone.startsWith("58") ? phone : phone ? `58${phone}` : "584147550091"
+                                const text = encodeURIComponent(
+                                  `¡Hola ${bday.customer.name}! 🎂✨\n\nDe parte de todo el equipo de *kick-off Commerce / Servicios y Suministros SP* te deseamos un ¡Feliz Cumpleaños! 🎉\n\nTe regalamos un cupón de *$10 USD de Descuento* en tu compra de hoy en tienda.\n🎟️ Código de Gift Card: *${giftCode}*\n\n¡Gracias por tu fidelidad!`
+                                )
+                                window.open(`https://wa.me/${targetPhone}?text=${text}`, "_blank")
+                              }}
+                              className="py-1.5 px-2.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-[11px] flex items-center gap-1 transition-all"
+                              title="Enviar felicitación con Gift Card por WhatsApp"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" /> WA
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })()}
 
                     {/* Mode Toggle: Contado vs Cuotas */}
                     <div className="grid grid-cols-2 gap-2 text-xs">
