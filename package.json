@@ -27,7 +27,8 @@
     "resend": "^6.12.2",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
