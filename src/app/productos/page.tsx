@@ -349,6 +349,13 @@ export default function ProductosPage() {
                     </div>
 
                     <div className="p-7 flex flex-col flex-1">
+                      {product.sku && (
+                        <div className="mb-2">
+                          <span className="font-mono text-[10px] bg-secondary/15 text-secondary px-2.5 py-0.5 rounded-md font-bold tracking-wider inline-block">
+                            {product.sku}
+                          </span>
+                        </div>
+                      )}
                       <h3
                         onClick={() => openProductDetail(product)}
                         className="font-black text-foreground text-lg leading-tight mb-2 line-clamp-2 group-hover:text-secondary transition-colors cursor-pointer"
