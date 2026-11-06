@@ -49,7 +49,7 @@ import { Button } from "@/components/ui/button"
 
 interface SalesAndFinanceProps {
   activeSubModule: "ventas" | "compras" | "cxc_cxp"
-  salesSubView?: "pos" | "orders" | "debit_notes"
+  salesSubView?: "pos" | "orders" | "debit_notes" | string
   purchasesSubView?: "new_purchase" | "history" | "suppliers" | "debit_notes" | "credit_notes" | "retenciones" | "predictive"
   cxcSubTab?: "cxc" | "cxp"
   products: any[]
@@ -93,7 +93,9 @@ export function SalesAndFinanceModules({
   // ==========================================
   // 1. VENTAS & POS STATE (Executive Cloud ERP style)
   // ==========================================
-  const [salesView, setSalesView] = useState<"pos" | "orders" | "debit_notes">(salesSubView || "pos")
+  const [salesView, setSalesView] = useState<"pos" | "orders" | "debit_notes">(
+    salesSubView === "orders" || salesSubView === "debit_notes" ? salesSubView : "pos"
+  )
   const [posSearch, setPosSearch] = useState("")
   const [posCart, setPosCart] = useState<Array<{ id: string; name: string; sku: string; price: number; quantity: number; stock: number; isBundle?: boolean }>>([])
 
@@ -296,7 +298,9 @@ export function SalesAndFinanceModules({
 
   // Synchronize internal views when parent sidebar triggers
   useEffect(() => {
-    if (salesSubView) setSalesView(salesSubView)
+    if (salesSubView === "pos" || salesSubView === "orders" || salesSubView === "debit_notes") {
+      setSalesView(salesSubView)
+    }
   }, [salesSubView])
 
   useEffect(() => {

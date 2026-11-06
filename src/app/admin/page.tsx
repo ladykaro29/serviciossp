@@ -83,6 +83,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { SalesAndFinanceModules } from "@/components/erp/SalesAndFinanceModules"
 import { TreasuryAndCrmModules } from "@/components/erp/TreasuryAndCrmModules"
+import { SalesExtendedModules } from "@/components/erp/SalesExtendedModules"
+import { MarketingAndInventoryModules } from "@/components/erp/MarketingAndInventoryModules"
+import { AnalyticsAndSystemModules } from "@/components/erp/AnalyticsAndSystemModules"
 
 interface ProductItem {
   id: string
@@ -150,6 +153,10 @@ type ErpTab =
   | "crm_vertical"
   | "solar"
   | "usuarios"
+  | "marketing"
+  | "finanzas"
+  | "analisis"
+  | "sistema"
 
 export default function AdminDashboard() {
   const sessionObj = useSession()
@@ -160,11 +167,27 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<ErpTab>("dashboard")
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [dashboardMetricView, setDashboardMetricView] = useState<"ventas" | "margen">("ventas")
-  const [inventorySubTab, setInventorySubTab] = useState<"catalogo" | "kardex">("catalogo")
-  const [salesSubView, setSalesSubView] = useState<"pos" | "orders" | "debit_notes">("pos")
+  const [inventorySubTab, setInventorySubTab] = useState<
+    "catalogo" | "kardex" | "categorias" | "traslados" | "ajustes" | "etiquetas"
+  >("catalogo")
+  const [salesSubView, setSalesSubView] = useState<
+    "pos" | "orders" | "debit_notes" | "cotizaciones" | "facturas" | "devoluciones" | "verificador_salida" | "vendedores" | "rutas"
+  >("pos")
   const [purchasesSubView, setPurchasesSubView] = useState<
     "new_purchase" | "history" | "suppliers" | "debit_notes" | "credit_notes" | "retenciones" | "predictive"
   >("new_purchase")
+  const [marketingSubView, setMarketingSubView] = useState<
+    "mapa" | "cupones" | "promociones" | "campanas"
+  >("mapa")
+  const [financeSubView, setFinanceSubView] = useState<
+    "precios" | "gastos"
+  >("precios")
+  const [analisisSubView, setAnalisisSubView] = useState<
+    "cierre_caja" | "rep_avanzados" | "detector_fugas" | "guardian_margenes" | "analytics_bi" | "ia_negocio"
+  >("cierre_caja")
+  const [sistemaSubView, setSistemaSubView] = useState<
+    "format_builder" | "visor_precios" | "cajeros" | "auditoria" | "configuracion" | "soporte"
+  >("format_builder")
   const [cxcSubTab, setCxcSubTab] = useState<"cxc" | "cxp">("cxc")
   const [crmSubTab, setCrmSubTab] = useState<"vertical" | "clientes">("vertical")
 
@@ -1135,11 +1158,11 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setActiveTab("inventario")
-                  setInventorySubTab("kardex")
+                  setInventorySubTab("categorias")
                   setSidebarOpen(false)
                 }}
                 className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
-                  activeTab === "inventario" && inventorySubTab === "kardex"
+                  activeTab === "inventario" && inventorySubTab === "categorias"
                     ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
                     : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                 }`}
@@ -1326,10 +1349,14 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setActiveTab("ventas")
-                  setSalesSubView("orders")
+                  setSalesSubView("cotizaciones")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "ventas" && salesSubView === "cotizaciones"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
                   <FileText className="w-4 h-4 text-sky-400" />
@@ -1339,10 +1366,14 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setActiveTab("ventas")
-                  setSalesSubView("pos")
+                  setSalesSubView("facturas")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "ventas" && salesSubView === "facturas"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
                   <ShoppingCart className="w-4 h-4 text-emerald-400" />
@@ -1352,10 +1383,14 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setActiveTab("ventas")
-                  showMessage("success", "Módulo de Devoluciones de Venta listo")
+                  setSalesSubView("devoluciones")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "ventas" && salesSubView === "devoluciones"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
                   <RotateCcw className="w-4 h-4 text-rose-400" />
@@ -1365,10 +1400,14 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setActiveTab("ventas")
-                  showMessage("success", "Verificador de Salida y Despacho activo")
+                  setSalesSubView("verificador_salida")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "ventas" && salesSubView === "verificador_salida"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
                   <CheckSquare className="w-4 h-4 text-purple-400" />
@@ -1377,11 +1416,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("crm_vertical")
-                  setCrmSubTab("clientes")
+                  setActiveTab("ventas")
+                  setSalesSubView("vendedores")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "ventas" && salesSubView === "vendedores"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
                   <Users className="w-4 h-4 text-purple-400" />
@@ -1390,11 +1433,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("crm_vertical")
-                  setCrmSubTab("vertical")
+                  setActiveTab("ventas")
+                  setSalesSubView("rutas")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "ventas" && salesSubView === "rutas"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
                   <MapPin className="w-4 h-4 text-sky-400" />
@@ -1426,10 +1473,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("crm_vertical")
+                  setActiveTab("marketing")
+                  setMarketingSubView("mapa")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "marketing" && marketingSubView === "mapa"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
                   <Compass className="w-4 h-4 text-sky-400" />
@@ -1438,11 +1490,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("ventas")
-                  showMessage("success", "Gestor de Cupones y Descuentos activo")
+                  setActiveTab("marketing")
+                  setMarketingSubView("cupones")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "marketing" && marketingSubView === "cupones"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
                   <Tag className="w-4 h-4 text-pink-400" />
@@ -1451,11 +1507,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("ventas")
-                  showMessage("success", "Panel de Promociones de Catálogo activo")
+                  setActiveTab("marketing")
+                  setMarketingSubView("promociones")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "marketing" && marketingSubView === "promociones"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
                   <BadgePercent className="w-4 h-4 text-rose-400" />
@@ -1464,11 +1524,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("contabilidad")
-                  showMessage("success", "Estadísticas de Campañas Comerciales")
+                  setActiveTab("marketing")
+                  setMarketingSubView("campanas")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "marketing" && marketingSubView === "campanas"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
                   <LineChart className="w-4 h-4 text-purple-400" />
@@ -1502,10 +1566,14 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setActiveTab("inventario")
-                  setInventorySubTab("kardex")
+                  setInventorySubTab("traslados")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "inventario" && inventorySubTab === "traslados"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
                   <ArrowLeftRight className="w-4 h-4 text-indigo-400" />
@@ -1515,10 +1583,14 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setActiveTab("inventario")
-                  setInventorySubTab("kardex")
+                  setInventorySubTab("ajustes")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "inventario" && inventorySubTab === "ajustes"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-4 h-4 text-amber-400" />
@@ -1528,10 +1600,14 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setActiveTab("inventario")
-                  showMessage("success", "Generador de Etiquetas de Código de Barras listo")
+                  setInventorySubTab("etiquetas")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "inventario" && inventorySubTab === "etiquetas"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
                   <Printer className="w-4 h-4 text-orange-400" />
@@ -1598,11 +1674,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("inventario")
-                  setInventorySubTab("catalogo")
+                  setActiveTab("finanzas")
+                  setFinanceSubView("precios")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "finanzas" && financeSubView === "precios"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
                   <Tag className="w-4 h-4 text-pink-400" />
@@ -1611,10 +1691,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("bancos")
+                  setActiveTab("finanzas")
+                  setFinanceSubView("gastos")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "finanzas" && financeSubView === "gastos"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
                   <DollarSign className="w-4 h-4 text-rose-400" />
@@ -1662,11 +1747,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("bancos")
-                  showMessage("success", "Cierre de Caja y Cuadre de Turno listo")
+                  setActiveTab("analisis")
+                  setAnalisisSubView("cierre_caja")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "analisis" && analisisSubView === "cierre_caja"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
                   <CreditCard className="w-4 h-4 text-pink-400" />
@@ -1675,10 +1764,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("contabilidad")
+                  setActiveTab("analisis")
+                  setAnalisisSubView("rep_avanzados")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "analisis" && analisisSubView === "rep_avanzados"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
                   <LineChart className="w-4 h-4 text-purple-400" />
@@ -1687,11 +1781,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("contabilidad")
-                  showMessage("success", "Detector de Fugas y Discrepancias activado")
+                  setActiveTab("analisis")
+                  setAnalisisSubView("detector_fugas")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "analisis" && analisisSubView === "detector_fugas"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
                   <ShieldAlert className="w-4 h-4 text-rose-400" />
@@ -1700,10 +1798,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("contabilidad")
+                  setActiveTab("analisis")
+                  setAnalisisSubView("guardian_margenes")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "analisis" && analisisSubView === "guardian_margenes"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
                   <TrendingUp className="w-4 h-4 text-amber-400" />
@@ -1712,10 +1815,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("contabilidad")
+                  setActiveTab("analisis")
+                  setAnalisisSubView("analytics_bi")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "analisis" && analisisSubView === "analytics_bi"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
                   <PieChart className="w-4 h-4 text-blue-400" />
@@ -1724,10 +1832,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("contabilidad")
+                  setActiveTab("analisis")
+                  setAnalisisSubView("ia_negocio")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "analisis" && analisisSubView === "ia_negocio"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
                   <Brain className="w-4 h-4 text-amber-400" />
@@ -1760,10 +1873,15 @@ export default function AdminDashboard() {
               </div>
               <button
                 onClick={() => {
-                  showMessage("success", "Format Builder de Documentos e Impresión")
+                  setActiveTab("sistema")
+                  setSistemaSubView("format_builder")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "sistema" && sistemaSubView === "format_builder"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
                   <FileCode className="w-4 h-4 text-orange-400" />
@@ -1772,11 +1890,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("inventario")
-                  showMessage("success", "Visores de Precio en Línea activos")
+                  setActiveTab("sistema")
+                  setSistemaSubView("visor_precios")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "sistema" && sistemaSubView === "visor_precios"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
                   <Tv className="w-4 h-4 text-orange-400" />
@@ -1801,10 +1923,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("usuarios")
+                  setActiveTab("sistema")
+                  setSistemaSubView("cajeros")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "sistema" && sistemaSubView === "cajeros"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
                   <UserCheck className="w-4 h-4 text-orange-400" />
@@ -1813,11 +1940,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("contabilidad")
-                  showMessage("success", "Bitácora de Auditoría del Sistema")
+                  setActiveTab("sistema")
+                  setSistemaSubView("auditoria")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "sistema" && sistemaSubView === "auditoria"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-slate-500/10 border border-slate-500/20 flex items-center justify-center shrink-0">
                   <ShieldCheck className="w-4 h-4 text-slate-400" />
@@ -1826,10 +1957,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  setEditingRates(true)
+                  setActiveTab("sistema")
+                  setSistemaSubView("configuracion")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "sistema" && sistemaSubView === "configuracion"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-slate-500/10 border border-slate-500/20 flex items-center justify-center shrink-0">
                   <Settings className="w-4 h-4 text-slate-400" />
@@ -1838,10 +1974,15 @@ export default function AdminDashboard() {
               </button>
               <button
                 onClick={() => {
-                  window.open("https://wa.me/584147550091?text=Hola,%20requiero%20soporte%20tecnico%20con%20kick-off%20Commerce%20Servicios%20SP", "_blank")
+                  setActiveTab("sistema")
+                  setSistemaSubView("soporte")
                   setSidebarOpen(false)
                 }}
-                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "sistema" && sistemaSubView === "soporte"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
                   <HelpCircle className="w-4 h-4 text-pink-400" />
@@ -2623,6 +2764,9 @@ export default function AdminDashboard() {
                   { id: "cxc_cxp", label: "CxC / CxP", icon: CreditCard },
                   { id: "bancos", label: "Bancos", icon: Landmark },
                   { id: "contabilidad", label: "Contabilidad", icon: BarChart3 },
+                  { id: "marketing", label: "Marketing", icon: Tag },
+                  { id: "analisis", label: "Análisis", icon: LineChart },
+                  { id: "sistema", label: "Sistema", icon: Settings },
                   { id: "crm_vertical", label: "CRM SP", icon: Wrench },
                   { id: "solar", label: "Solar", icon: SunMedium },
                   { id: "usuarios", label: "Usuarios", icon: Users },
@@ -2667,8 +2811,23 @@ export default function AdminDashboard() {
         {/* ====================================================================
             TAB 1: INVENTARIO AVANZADO & KARDEX
            ==================================================================== */}
-        {activeTab === "inventario" && (
-          <div className="space-y-6">
+        {activeTab === "inventario" &&
+          (inventorySubTab === "categorias" ||
+          inventorySubTab === "traslados" ||
+          inventorySubTab === "ajustes" ||
+          inventorySubTab === "etiquetas" ? (
+            <MarketingAndInventoryModules
+              section="inventario"
+              subView={inventorySubTab}
+              products={products}
+              customers={customers}
+              settings={settings}
+              formatMoney={formatMoney}
+              onRefreshAll={handleRefreshAll}
+              showMessage={showMessage}
+            />
+          ) : (
+            <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h1 className="text-3xl font-black text-white tracking-tight">
@@ -3018,12 +3177,56 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-        )}
+        ))}
 
         {/* ====================================================================
-            TABS 2, 3, 4: VENTAS/POS, COMPRAS, CXC/CXP
+            VENTAS: POS, PEDIDOS, DEBIT NOTES vs COTIZACIONES, FACTURAS, DEVOLUCIONES, ETC.
            ==================================================================== */}
-        {(activeTab === "ventas" || activeTab === "compras" || activeTab === "cxc_cxp") && (
+        {activeTab === "ventas" &&
+          (salesSubView === "cotizaciones" ||
+          salesSubView === "facturas" ||
+          salesSubView === "devoluciones" ||
+          salesSubView === "verificador_salida" ||
+          salesSubView === "vendedores" ||
+          salesSubView === "rutas" ? (
+            <SalesExtendedModules
+              subView={salesSubView}
+              products={products}
+              orders={orders}
+              customers={customers}
+              settings={settings}
+              formatMoney={formatMoney}
+              onRefreshAll={handleRefreshAll}
+              showMessage={showMessage}
+              onSelectPosView={() => setSalesSubView("pos")}
+            />
+          ) : (
+            <SalesAndFinanceModules
+              activeSubModule={activeTab}
+              salesSubView={salesSubView}
+              purchasesSubView={purchasesSubView}
+              cxcSubTab={cxcSubTab}
+              products={products}
+              orders={orders}
+              customers={customers}
+              suppliers={suppliers}
+              purchases={purchases}
+              receivables={receivables}
+              payables={payables}
+              bankAccounts={bankAccounts}
+              settings={settings}
+              formatMoney={formatMoney}
+              onRefreshAll={handleRefreshAll}
+              showMessage={showMessage}
+              onUpdateOrderStatus={handleUpdateOrderStatus}
+              onDeleteOrder={handleDeleteOrder}
+            />
+          ))}
+
+        {/* ====================================================================
+            COMPRAS Y CXC/CXP
+           ==================================================================== */}
+        {(activeTab === "compras" || activeTab === "cxc_cxp") && (
           <SalesAndFinanceModules
             activeSubModule={activeTab}
             salesSubView={salesSubView}
@@ -3043,6 +3246,74 @@ export default function AdminDashboard() {
             showMessage={showMessage}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onDeleteOrder={handleDeleteOrder}
+          />
+        )}
+
+        {/* ====================================================================
+            MARKETING: MAPA COMERCIAL, CUPONES, PROMOCIONES, CAMPAÑAS
+           ==================================================================== */}
+        {activeTab === "marketing" && (
+          <MarketingAndInventoryModules
+            section="marketing"
+            subView={marketingSubView}
+            products={products}
+            customers={customers}
+            settings={settings}
+            formatMoney={formatMoney}
+            onRefreshAll={handleRefreshAll}
+            showMessage={showMessage}
+          />
+        )}
+
+        {/* ====================================================================
+            FINANZAS: LISTAS DE PRECIOS, GASTOS OPERATIVOS
+           ==================================================================== */}
+        {activeTab === "finanzas" && (
+          <AnalyticsAndSystemModules
+            section="finanzas"
+            subView={financeSubView}
+            products={products}
+            orders={orders}
+            bankAccounts={bankAccounts}
+            settings={settings}
+            formatMoney={formatMoney}
+            onRefreshAll={handleRefreshAll}
+            showMessage={showMessage}
+          />
+        )}
+
+        {/* ====================================================================
+            ANÁLISIS: CIERRE DE CAJA, REPORTES AVANZADOS, DETECTOR DE FUGAS, GUARDIÁN DE MÁRGENES, BI
+           ==================================================================== */}
+        {activeTab === "analisis" && (
+          <AnalyticsAndSystemModules
+            section="analisis"
+            subView={analisisSubView}
+            products={products}
+            orders={orders}
+            bankAccounts={bankAccounts}
+            settings={settings}
+            formatMoney={formatMoney}
+            onRefreshAll={handleRefreshAll}
+            showMessage={showMessage}
+          />
+        )}
+
+        {/* ====================================================================
+            SISTEMA: FORMAT BUILDER, VISORES DE PRECIO, CAJEROS, AUDITORÍA, CONFIGURACIÓN, SOPORTE
+           ==================================================================== */}
+        {activeTab === "sistema" && (
+          <AnalyticsAndSystemModules
+            section="sistema"
+            subView={sistemaSubView}
+            products={products}
+            orders={orders}
+            bankAccounts={bankAccounts}
+            settings={settings}
+            formatMoney={formatMoney}
+            onRefreshAll={handleRefreshAll}
+            showMessage={showMessage}
+            onOpenRateEditor={() => setEditingRates(true)}
           />
         )}
 
