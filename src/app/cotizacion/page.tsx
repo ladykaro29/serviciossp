@@ -33,6 +33,7 @@ interface SubmittedQuoteSummary {
   customerPhone: string
   customerCity: string
   paymentCondition: "CONTADO" | "CREDITO"
+  paymentMethod?: string
   customNotes: string
   items: {
     id: string | number
@@ -63,6 +64,7 @@ export default function CotizacionPage() {
   const [customerCity, setCustomerCity] = useState("El Vigía")
   const [customNotes, setCustomNotes] = useState("")
   const [paymentCondition, setPaymentCondition] = useState<"CONTADO" | "CREDITO">("CONTADO")
+  const [preferredPaymentMethod, setPreferredPaymentMethod] = useState("Binance")
   const [displayCurrency, setDisplayCurrency] = useState<"USD" | "BS" | "BINANCE" | "EUR">("USD")
 
   // Rates
@@ -168,6 +170,7 @@ export default function CotizacionPage() {
     phone: string
     city: string
     condition: "CONTADO" | "CREDITO"
+    paymentMethod?: string
     notes: string
     items: { name: string; quantity: number; price: number }[]
     total: number
@@ -196,7 +199,8 @@ export default function CotizacionPage() {
         params.condition === "CREDITO"
           ? `Financiado en Cuotas (${rates.defaultInitialPercent}% inicial + ${rates.defaultInstallments} cuotas cada ${rates.defaultFrequencyDays} días)`
           : "De Contado"
-      }\n\n` +
+      }\n` +
+      `💵 *Método de Pago Preferido:* ${params.paymentMethod || "Efectivo"}\n\n` +
       `📦 *Equipos / Requerimiento:*\n${itemsList}\n` +
       (params.notes ? `\n📝 *Detalles / Proyecto:* ${params.notes}\n` : "") +
       (params.total > 0
@@ -259,7 +263,7 @@ export default function CotizacionPage() {
         quote.paymentCondition === "CREDITO"
           ? `Financiado en Cuotas (${rates.defaultInitialPercent}% Inicial + ${rates.defaultInstallments} cuotas)`
           : "Pago de Contado"
-      }`,
+      } | Método de Pago: ${quote.paymentMethod || "Efectivo"}`,
       15,
       72
     )
@@ -420,6 +424,7 @@ export default function CotizacionPage() {
       phone: customerPhone.trim(),
       city: customerCity.trim() || "El Vigía",
       condition: paymentCondition,
+      paymentMethod: preferredPaymentMethod,
       notes: customNotes.trim(),
       items: itemsPayload,
       total: estimatedTotal,
@@ -434,6 +439,7 @@ export default function CotizacionPage() {
       customerPhone: customerPhone.trim(),
       customerCity: customerCity.trim() || "El Vigía",
       paymentCondition,
+      paymentMethod: preferredPaymentMethod,
       customNotes: customNotes.trim(),
       items:
         itemsPayload.length > 0
@@ -888,6 +894,36 @@ export default function CotizacionPage() {
                     {rates.defaultInitialPercent}% inicial + {rates.defaultInstallments} cuotas
                   </div>
                 </button>
+              </div>
+
+              {/* Método de Pago Selector */}
+              <div className="space-y-2 pt-2">
+                <label className="block text-xs font-bold text-white/70 uppercase tracking-wider">
+                  Método de Pago Preferido
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                  {[
+                    { id: "Binance", label: "🟡 Binance", desc: "USDT Cripto" },
+                    { id: "Pago Móvil", label: "📲 Pago Móvil", desc: "Bolívares BCV" },
+                    { id: "Transferencia Bancaria", label: "🏦 Transferencia", desc: "Bancos Nac." },
+                    { id: "Efectivo", label: "💵 Efectivo", desc: "USD / Bs en tienda" },
+                    { id: "Zelle", label: "⚡ Zelle", desc: "Dólares USA" },
+                  ].map(m => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setPreferredPaymentMethod(m.id)}
+                      className={`p-3 rounded-2xl border text-left transition-all ${
+                        preferredPaymentMethod === m.id
+                          ? "bg-secondary/20 border-secondary text-white shadow-lg shadow-secondary/15 ring-1 ring-secondary/50"
+                          : "bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10"
+                      }`}
+                    >
+                      <div className="font-bold text-xs">{m.label}</div>
+                      <div className="text-[10px] text-white/40">{m.desc}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Financial Breakdown */}

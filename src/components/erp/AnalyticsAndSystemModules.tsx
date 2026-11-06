@@ -69,6 +69,7 @@ export function AnalyticsAndSystemModules({
     usd1: 20,
     puntoBsUsd: 125.4,
     pagoMovilUsd: 84.0,
+    transferenciaUsd: 110.0,
     zelleUsd: 150.0,
     binanceUsd: 65.0,
   })
@@ -218,6 +219,7 @@ export function AnalyticsAndSystemModules({
   const totalDigitalUsd =
     cashCounts.puntoBsUsd +
     cashCounts.pagoMovilUsd +
+    cashCounts.transferenciaUsd +
     cashCounts.zelleUsd +
     cashCounts.binanceUsd
 
@@ -469,6 +471,10 @@ export function AnalyticsAndSystemModules({
                 <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl">
                   <span className="text-white/70">Pago Móvil Bs:</span>
                   <span className="font-mono font-bold text-white">${cashCounts.pagoMovilUsd.toFixed(2)} USD</span>
+                </div>
+                <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl">
+                  <span className="text-white/70">Transferencia Bancaria:</span>
+                  <span className="font-mono font-bold text-white">${cashCounts.transferenciaUsd.toFixed(2)} USD</span>
                 </div>
                 <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl">
                   <span className="text-white/70">Zelle USD:</span>

@@ -108,7 +108,7 @@ export function SalesAndFinanceModules({
   const [posLayoutView, setPosLayoutView] = useState<"grid" | "list">("grid")
   const [posDiscount, setPosDiscount] = useState<number>(0)
   const [posCheckoutModalOpen, setPosCheckoutModalOpen] = useState(false)
-  const [posPaymentMethod, setPosPaymentMethod] = useState("Efectivo USD")
+  const [posPaymentMethod, setPosPaymentMethod] = useState("Efectivo")
   const [posAmountTendered, setPosAmountTendered] = useState<number>(0)
   const [posSelectedCustomerId, setPosSelectedCustomerId] = useState<string>("final")
   const [posCustomerSelectorOpen, setPosCustomerSelectorOpen] = useState(false)
@@ -175,11 +175,13 @@ export function SalesAndFinanceModules({
   const [cxcTab, setCxcTab] = useState<"cxc" | "cxp">(cxcSubTab || "cxc")
   const [payingCxc, setPayingCxc] = useState<any | null>(null)
   const [cxcPayAmount, setCxcPayAmount] = useState<number>(0)
+  const [cxcPaymentMethod, setCxcPaymentMethod] = useState("Transferencia Bancaria")
   const [cxcPayBankId, setCxcPayBankId] = useState<string>(bankAccounts[0]?.id || "")
   const [cxcPayRef, setCxcPayRef] = useState("")
 
   const [payingCxp, setPayingCxp] = useState<any | null>(null)
   const [cxpPayAmount, setCxpPayAmount] = useState<number>(0)
+  const [cxpPaymentMethod, setCxpPaymentMethod] = useState("Transferencia Bancaria")
   const [cxpPayBankId, setCxpPayBankId] = useState<string>(bankAccounts[0]?.id || "")
   const [cxpPayRef, setCxpPayRef] = useState("")
 
@@ -773,6 +775,7 @@ export function SalesAndFinanceModules({
     items: any[]
     totalUsd: number
     paymentCondition: string
+    paymentMethod?: string
     initialUsd: number
     installmentsCount: number
     frequencyDays: number
@@ -795,11 +798,12 @@ export function SalesAndFinanceModules({
     doc.setTextColor(255, 98, 0)
     doc.setFontSize(14)
     doc.setFont("helvetica", "bold")
-    doc.text(saleData.invoiceNumber, 155, 20)
+    doc.text(saleData.invoiceNumber, 155, 18)
     doc.setTextColor(255, 255, 255)
-    doc.setFontSize(9)
-    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 155, 28)
-    doc.text(`Modalidad: ${saleData.paymentCondition}`, 155, 34)
+    doc.setFontSize(8.5)
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 155, 25)
+    doc.text(`Modalidad: ${saleData.paymentCondition}`, 155, 30)
+    doc.text(`Método: ${saleData.paymentMethod || "Efectivo"}`, 155, 35)
 
     doc.setTextColor(20, 20, 20)
     doc.setFontSize(11)
@@ -963,6 +967,7 @@ export function SalesAndFinanceModules({
             customerCity: posCustomerCity,
             items: posCart,
             paymentCondition: posPaymentCondition,
+            paymentMethod: posPaymentMethod,
             bankAccountId: posBankAccountId || bankAccounts[0]?.id,
             currency: "USD",
             applyTax: posApplyTax,
@@ -980,7 +985,7 @@ export function SalesAndFinanceModules({
           "success",
           posPaymentCondition === "CREDITO"
             ? `¡Venta Financiada ${data.order.invoiceNumber} procesada! Se descontó el stock, se registró la inicial en Banco y se creó el plan de ${posInstallmentsCount} cuotas en CxC.`
-            : `¡Venta de Contado ${data.order.invoiceNumber} registrada con éxito! Stock e ingresos actualizados.`
+            : `¡Venta de Contado (${posPaymentMethod}) ${data.order.invoiceNumber} registrada con éxito! Stock e ingresos actualizados.`
         )
         handleDownloadInvoicePdf({
           invoiceNumber: data.order.invoiceNumber,
@@ -990,6 +995,7 @@ export function SalesAndFinanceModules({
           items: posCart,
           totalUsd: posFinalTotal,
           paymentCondition: posPaymentCondition,
+          paymentMethod: posPaymentMethod,
           initialUsd: posInitialUsd,
           installmentsCount: posInstallmentsCount,
           frequencyDays: posFrequencyDays,
@@ -1103,12 +1109,12 @@ export function SalesAndFinanceModules({
             receivableId: payingCxc.id,
             amountUsd: cxcPayAmount,
             bankAccountId: cxcPayBankId || bankAccounts[0]?.id,
-            reference: cxcPayRef,
+            reference: `[${cxcPaymentMethod}] ${cxcPayRef || "Abono"}`,
           },
         }),
       })
       if (res.ok) {
-        showMessage("success", `¡Cobro de $${cxcPayAmount.toFixed(2)} USD registrado e ingresado en Banco!`)
+        showMessage("success", `¡Cobro de $${cxcPayAmount.toFixed(2)} USD vía ${cxcPaymentMethod} registrado e ingresado en Banco!`)
         setPayingCxc(null)
         setCxcPayRef("")
         await onRefreshAll()
@@ -1133,12 +1139,12 @@ export function SalesAndFinanceModules({
             payableId: payingCxp.id,
             amountUsd: cxpPayAmount,
             bankAccountId: cxpPayBankId || bankAccounts[0]?.id,
-            reference: cxpPayRef,
+            reference: `[${cxpPaymentMethod}] ${cxpPayRef || "Pago a proveedor"}`,
           },
         }),
       })
       if (res.ok) {
-        showMessage("success", `¡Pago a proveedor de $${cxpPayAmount.toFixed(2)} USD registrado!`)
+        showMessage("success", `¡Pago a proveedor de $${cxpPayAmount.toFixed(2)} USD vía ${cxpPaymentMethod} registrado!`)
         setPayingCxp(null)
         setCxpPayRef("")
         await onRefreshAll()
@@ -1871,12 +1877,12 @@ export function SalesAndFinanceModules({
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                       {[
-                        { id: "Efectivo USD", label: "💵 Efectivo USD ($)" },
-                        { id: "Pago Móvil (Bs.)", label: "📲 Pago Móvil (Bs.)" },
-                        { id: "Punto de Venta", label: "💳 Punto de Venta" },
-                        { id: "Zelle", label: "⚡ Zelle ($)" },
-                        { id: "Binance Pay / USDT", label: "🟡 Binance USDT" },
-                        { id: "Transferencia Bancaria", label: "🏦 Transferencia" },
+                        { id: "Binance", label: "🟡 Binance (USDT)" },
+                        { id: "Pago Móvil", label: "📲 Pago Móvil" },
+                        { id: "Transferencia Bancaria", label: "🏦 Transferencia Bancaria" },
+                        { id: "Efectivo", label: "💵 Efectivo ($/Bs)" },
+                        { id: "Zelle", label: "⚡ Zelle" },
+                        { id: "Punto de Venta", label: "💳 Tarjeta / Punto de Venta" },
                       ].map(m => (
                         <button
                           key={m.id}
@@ -3272,6 +3278,20 @@ export function SalesAndFinanceModules({
               />
             </div>
             <div>
+              <label className="block text-xs font-bold text-white/60 mb-1">Método de Pago</label>
+              <select
+                value={cxcPaymentMethod}
+                onChange={e => setCxcPaymentMethod(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white"
+              >
+                <option value="Binance" className="bg-[#041124]">🟡 Binance (USDT)</option>
+                <option value="Pago Móvil" className="bg-[#041124]">📲 Pago Móvil (Bs.)</option>
+                <option value="Transferencia Bancaria" className="bg-[#041124]">🏦 Transferencia Bancaria</option>
+                <option value="Efectivo" className="bg-[#041124]">💵 Efectivo ($/Bs)</option>
+                <option value="Zelle" className="bg-[#041124]">⚡ Zelle</option>
+              </select>
+            </div>
+            <div>
               <label className="block text-xs font-bold text-white/60 mb-1">Cuenta Bancaria / Caja Destino</label>
               <select
                 value={cxcPayBankId}
@@ -3291,7 +3311,7 @@ export function SalesAndFinanceModules({
                 type="text"
                 value={cxcPayRef}
                 onChange={e => setCxcPayRef(e.target.value)}
-                placeholder="Ej: Zelle #98123 / Efectivo"
+                placeholder="Ej: Zelle #98123 / Pago Móvil 4821 / Binance Pay ID"
                 className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white"
               />
             </div>
@@ -3329,6 +3349,20 @@ export function SalesAndFinanceModules({
                 onChange={e => setCxpPayAmount(parseFloat(e.target.value) || 0)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white font-mono"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-white/60 mb-1">Método de Pago</label>
+              <select
+                value={cxpPaymentMethod}
+                onChange={e => setCxpPaymentMethod(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white"
+              >
+                <option value="Binance" className="bg-[#041124]">🟡 Binance (USDT)</option>
+                <option value="Pago Móvil" className="bg-[#041124]">📲 Pago Móvil (Bs.)</option>
+                <option value="Transferencia Bancaria" className="bg-[#041124]">🏦 Transferencia Bancaria</option>
+                <option value="Efectivo" className="bg-[#041124]">💵 Efectivo ($/Bs)</option>
+                <option value="Zelle" className="bg-[#041124]">⚡ Zelle</option>
+              </select>
             </div>
             <div>
               <label className="block text-xs font-bold text-white/60 mb-1">Pagar desde Cuenta / Caja</label>

@@ -541,10 +541,11 @@ export function TreasuryAndCrmModules({
                   onChange={e => setNewBankForm({ ...newBankForm, type: e.target.value })}
                   className="bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white"
                 >
-                  <option value="BANCO" className="bg-[#041124]">Banco</option>
-                  <option value="EFECTIVO" className="bg-[#041124]">Caja Efectivo</option>
-                  <option value="ZELLE" className="bg-[#041124]">Zelle</option>
-                  <option value="BINANCE" className="bg-[#041124]">Binance</option>
+                  <option value="BINANCE" className="bg-[#041124]">🟡 Binance</option>
+                  <option value="PAGO_MOVIL" className="bg-[#041124]">📲 Pago Móvil</option>
+                  <option value="BANCO" className="bg-[#041124]">🏦 Banco / Transferencia</option>
+                  <option value="EFECTIVO" className="bg-[#041124]">💵 Caja Efectivo</option>
+                  <option value="ZELLE" className="bg-[#041124]">⚡ Zelle</option>
                 </select>
               </div>
               <input
