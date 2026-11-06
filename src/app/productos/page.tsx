@@ -187,60 +187,19 @@ export default function ProductosPage() {
   return (
     <div className="flex flex-col min-h-screen pb-32 bg-background">
       {/* Page Header */}
-      <div className="bg-primary text-white py-24 relative overflow-hidden">
+      <div className="bg-primary text-white py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-mesh opacity-30"></div>
-        <div className="container mx-auto px-4 relative z-10 flex flex-col lg:flex-row justify-between items-center gap-8 text-center lg:text-left">
+        <div className="container mx-auto px-4 relative z-10 flex flex-col justify-between items-start gap-4">
           <div>
-            <div className="inline-block px-4 py-1 bg-secondary/10 text-secondary text-[10px] font-black uppercase tracking-widest rounded-full mb-6">
-              Equipos de Alta Tecnología · Multi-Moneda (BCV · Binance · USD · EUR)
+            <div className="inline-block px-4 py-1 bg-secondary/10 text-secondary text-[10px] font-black uppercase tracking-widest rounded-full mb-4">
+              Equipos de Alta Tecnología · Soluciones Industriales y Comerciales
             </div>
-            <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tighter leading-none">
+            <h1 className="text-4xl md:text-6xl font-black mb-4 tracking-tighter leading-none">
               Catálogo <span className="text-secondary">Premium</span>
             </h1>
-            <p className="text-white/60 max-w-2xl text-xl leading-relaxed">
+            <p className="text-white/60 max-w-2xl text-lg leading-relaxed">
               Explora especificaciones técnicas, características, variantes y opciones de pago de contado o en cuotas.
             </p>
-          </div>
-
-          {/* Multi-currency Switcher Card */}
-          <div className="bg-[#041124]/90 backdrop-blur-xl p-5 rounded-3xl border border-white/10 shadow-2xl shrink-0">
-            <div className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-3 flex items-center gap-2">
-              <Coins className="w-4 h-4 text-secondary" /> Moneda y Tasa de Referencia
-            </div>
-            <div className="flex flex-wrap gap-1.5 bg-white/5 p-1.5 rounded-2xl border border-white/10">
-              {(["USD", "BS", "BINANCE", "EUR"] as const).map(curr => (
-                <button
-                  key={curr}
-                  onClick={() => setDisplayCurrency(curr)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                    displayCurrency === curr
-                      ? "bg-secondary text-white shadow-lg shadow-secondary/20"
-                      : "text-white/50 hover:text-white"
-                  }`}
-                >
-                  {curr === "USD"
-                    ? "$ USD"
-                    : curr === "BS"
-                    ? "Bs. (BCV)"
-                    : curr === "BINANCE"
-                    ? "Bs. (Binance)"
-                    : "€ EUR"}
-                </button>
-              ))}
-            </div>
-            <div className="mt-2.5 text-[10px] text-white/50 font-mono text-center flex flex-wrap justify-center gap-2">
-              <span>
-                BCV: <strong className="text-green-400">Bs. {rates.usdToBs.toFixed(2)}</strong>
-              </span>
-              <span>|</span>
-              <span>
-                Binance: <strong className="text-amber-400">Bs. {rates.binanceToBs.toFixed(2)}</strong>
-              </span>
-              <span>|</span>
-              <span>
-                EUR: <strong className="text-blue-400">Bs. {rates.eurToBs.toFixed(2)}</strong>
-              </span>
-            </div>
           </div>
         </div>
       </div>
@@ -429,7 +388,7 @@ export default function ProductosPage() {
                       <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
                         <div>
                           <span className="text-[10px] text-foreground/40 uppercase tracking-widest font-black block mb-0.5">
-                            {hasPrice ? `Precio (${displayCurrency})` : "Cotizar"}
+                            {hasPrice ? "Precio" : "Cotizar"}
                           </span>
                           {hasPrice ? (
                             <span className="font-black text-xl text-green-400 font-mono tracking-tight">
@@ -579,18 +538,13 @@ export default function ProductosPage() {
                     <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 flex flex-wrap justify-between items-center gap-4">
                       <div>
                         <span className="text-[10px] uppercase font-black tracking-widest text-white/40 block">
-                          Precio de Contado ({displayCurrency})
+                          Precio de Contado
                         </span>
                         {effectivePrice > 0 ? (
                           <div className="flex items-baseline gap-3 mt-1">
                             <span className="text-3xl font-black text-green-400 font-mono">
                               {formatPrice(effectivePrice)}
                             </span>
-                            {displayCurrency !== "USD" && (
-                              <span className="text-xs font-mono text-white/50">
-                                (${effectivePrice.toFixed(2)} USD)
-                              </span>
-                            )}
                           </div>
                         ) : (
                           <span className="text-xl font-black text-amber-400">Precio a Consultar</span>
