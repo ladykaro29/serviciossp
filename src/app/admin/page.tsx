@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -77,6 +77,8 @@ import {
   FileCode,
   UserCheck,
   Compass,
+  Barcode,
+  Scan,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SalesAndFinanceModules } from "@/components/erp/SalesAndFinanceModules"
@@ -243,6 +245,14 @@ export default function AdminDashboard() {
     }>,
     isActive: true,
   })
+
+  // Roccia CBR-8200LW Barcode Scanner Engine (Inventory & Catalog Intake)
+  const [inventoryScanMode, setInventoryScanMode] = useState<"quick_stock" | "search">("quick_stock")
+  const [scanStockBatchQty, setScanStockBatchQty] = useState<number>(1)
+  const [lastRocciaScan, setLastRocciaScan] = useState<string | null>(null)
+  const rocciaBufferRef = useRef("")
+  const lastRocciaKeyTimeRef = useRef(0)
+  const prodNameInputRef = useRef<HTMLInputElement | null>(null)
   const [newFeatureInput, setNewFeatureInput] = useState("")
   const [newVariantName, setNewVariantName] = useState("")
   const [newVariantPrice, setNewVariantPrice] = useState("")
@@ -638,6 +648,158 @@ export default function AdminDashboard() {
     setBundleItemQty("1")
     setIsModalOpen(true)
   }
+
+  // Authentic POS Audio Beeper for Roccia CBR-8200LW
+  const playRocciaBeep = (isSuccess = true) => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+      if (!AudioCtx) return
+      const ctx = new AudioCtx()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      if (isSuccess) {
+        osc.type = "sine"
+        osc.frequency.setValueAtTime(1760, ctx.currentTime) // High clear barcode beep (A6)
+        gain.gain.setValueAtTime(0.2, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.12)
+      } else {
+        osc.type = "sawtooth"
+        osc.frequency.setValueAtTime(320, ctx.currentTime)
+        gain.gain.setValueAtTime(0.25, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.25)
+      }
+    } catch {
+      // Audio context browser policy
+    }
+  }
+
+  // Roccia CBR-8200LW Barcode Scanner Handler for Inventory Management & Intake
+  const handleRocciaInventoryScan = async (rawCode: string) => {
+    const code = rawCode.trim()
+    if (!code) return
+
+    // 1. If Product Modal is open: place barcode directly into Código SKU field!
+    if (isModalOpen) {
+      setFormData(prev => ({ ...prev, sku: code }))
+      playRocciaBeep(true)
+      showMessage("success", `🔫 [ROCCIA] Código "${code}" asignado a la Ficha del Producto.`)
+      setTimeout(() => prodNameInputRef.current?.focus(), 150)
+      return
+    }
+
+    // 2. Modal is closed: resolve product in catalog
+    const matched = products.find(
+      p => (p.sku && p.sku.toLowerCase() === code.toLowerCase()) || p.id === code
+    )
+
+    if (matched) {
+      if (inventoryScanMode === "quick_stock") {
+        // Quick Stock Intake: +1 or batch quantity into inventory + Kardex movement
+        const qtyToAdd = scanStockBatchQty || 1
+        try {
+          const res = await fetch("/api/erp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "ADJUST_INVENTORY",
+              payload: {
+                productId: matched.id,
+                type: "ENTRADA",
+                quantity: qtyToAdd,
+                notes: "Entrada rápida con lector inalámbrico Roccia CBR-8200LW",
+                reference: "SCAN-ROCCIA",
+              },
+            }),
+          })
+          const data = await res.json()
+          if (data.success) {
+            setProducts(prev =>
+              prev.map(p => (p.id === matched.id ? { ...p, stock: (p.stock || 0) + qtyToAdd } : p))
+            )
+            playRocciaBeep(true)
+            setLastRocciaScan(`${matched.name}: +${qtyToAdd} (Total: ${(matched.stock || 0) + qtyToAdd})`)
+            showMessage(
+              "success",
+              `🔫 [ROCCIA CBR-8200LW] +${qtyToAdd} unidad(es) cargada(s) a: ${matched.name} (Stock: ${(matched.stock || 0) + qtyToAdd})`
+            )
+          }
+        } catch {
+          showMessage("error", "Error al actualizar stock con el lector de código de barras.")
+        }
+      } else {
+        // Search & locate product in catalog table
+        setSearchQuery(code)
+        playRocciaBeep(true)
+        showMessage("success", `🔫 [ROCCIA] Producto localizado: ${matched.name} (Stock: ${matched.stock || 0})`)
+      }
+    } else {
+      // Product NOT found in catalog: open Create modal with pre-filled SKU from barcode!
+      playRocciaBeep(false)
+      setModalMode("create")
+      setFormData({
+        id: "",
+        sku: code,
+        name: "",
+        category: categories[1] || "INVERSORES",
+        price: 0,
+        costPrice: 0,
+        stock: 1,
+        minStock: 3,
+        unit: "UND",
+        brand: "SP",
+        image: "/placeholder-product.png",
+        description: "",
+        featuresList: [],
+        variantsList: [],
+        isBundle: false,
+        bundleItemsList: [],
+        isActive: true,
+      })
+      setIsModalOpen(true)
+      showMessage(
+        "success",
+        `📦 [ROCCIA CBR-8200LW] Código nuevo "${code}". Ficha de nuevo producto abierta automáticamente.`
+      )
+      setTimeout(() => prodNameInputRef.current?.focus(), 200)
+    }
+  }
+
+  // Global listener for Roccia CBR-8200LW Wireless 1D Laser Scanner
+  useEffect(() => {
+    if (activeTab !== "inventario") return
+
+    const handleRocciaKeyDown = (e: KeyboardEvent) => {
+      const now = Date.now()
+      const timeDiff = now - lastRocciaKeyTimeRef.current
+      lastRocciaKeyTimeRef.current = now
+
+      // Roccia sends high speed characters ending with Enter (Keycode 13)
+      if (e.key === "Enter") {
+        if (rocciaBufferRef.current.length >= 2) {
+          e.preventDefault()
+          handleRocciaInventoryScan(rocciaBufferRef.current)
+          rocciaBufferRef.current = ""
+        }
+      } else if (e.key.length === 1) {
+        if (timeDiff > 70 && rocciaBufferRef.current.length > 0) {
+          rocciaBufferRef.current = e.key
+        } else {
+          rocciaBufferRef.current += e.key
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleRocciaKeyDown)
+    return () => window.removeEventListener("keydown", handleRocciaKeyDown)
+  }, [activeTab, isModalOpen, products, inventoryScanMode, scanStockBatchQty])
 
   const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -2537,6 +2699,75 @@ export default function AdminDashboard() {
                   </button>
                 </div>
 
+                {/* Roccia CBR-8200LW Barcode Scanner Status & Controls */}
+                <div className="flex items-center gap-2 bg-[#06152d] border border-emerald-500/30 px-3.5 py-1.5 rounded-2xl shadow-inner text-xs">
+                  <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                    <Barcode className="w-4 h-4 text-emerald-400 animate-pulse" />
+                    <span className="hidden sm:inline">Pistola Roccia:</span>
+                  </div>
+
+                  <div className="flex items-center bg-black/40 p-0.5 rounded-xl border border-white/10 text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInventoryScanMode("quick_stock")
+                        showMessage("success", "Modo Carga Rápida: Al escanear con la pistola Roccia, suma stock automáticamente.")
+                      }}
+                      className={`px-2 py-0.5 rounded-lg transition-all ${
+                        inventoryScanMode === "quick_stock"
+                          ? "bg-emerald-600 text-white font-black shadow-sm"
+                          : "text-white/50 hover:text-white"
+                      }`}
+                      title="Suma stock automáticamente al escanear"
+                    >
+                      +1 Carga
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInventoryScanMode("search")
+                        showMessage("success", "Modo Búsqueda: Al escanear con la pistola Roccia, localiza el producto.")
+                      }}
+                      className={`px-2 py-0.5 rounded-lg transition-all ${
+                        inventoryScanMode === "search"
+                          ? "bg-blue-600 text-white font-black shadow-sm"
+                          : "text-white/50 hover:text-white"
+                      }`}
+                      title="Localiza y filtra el producto al escanear"
+                    >
+                      Buscar
+                    </button>
+                  </div>
+
+                  {inventoryScanMode === "quick_stock" && (
+                    <div className="flex items-center gap-1 text-[11px] font-bold text-white/70">
+                      <span>Lote:</span>
+                      <select
+                        value={scanStockBatchQty}
+                        onChange={e => setScanStockBatchQty(parseInt(e.target.value, 10) || 1)}
+                        className="bg-black/60 border border-white/10 rounded-lg px-1.5 py-0.5 text-white font-mono text-[10px]"
+                      >
+                        <option value="1">+1</option>
+                        <option value="5">+5</option>
+                        <option value="10">+10</option>
+                        <option value="25">+25</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playRocciaBeep(true)
+                      showMessage("success", "Lector inalámbrico Roccia CBR-8200LW listo y sincronizado.")
+                    }}
+                    className="text-white/40 hover:text-secondary ml-1"
+                    title="Probar sonido bip del escáner"
+                  >
+                    🔊
+                  </button>
+                </div>
+
                 <Button
                   onClick={handleOpenCreate}
                   className="bg-secondary hover:bg-secondary/90 text-white font-black rounded-2xl gap-2"
@@ -2937,12 +3168,18 @@ export default function AdminDashboard() {
             <form onSubmit={handleSubmitProduct} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-white/60 mb-1">Código SKU</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-black uppercase text-white/60">Código SKU / Barra</label>
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.2 rounded flex items-center gap-1">
+                      <Barcode className="w-3 h-3" /> Roccia
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={formData.sku}
                     onChange={e => setFormData({ ...formData, sku: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white font-mono text-xs"
+                    placeholder="Escanea con la pistola o escribe..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white font-mono text-xs focus:border-emerald-500 transition-colors"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -2950,6 +3187,7 @@ export default function AdminDashboard() {
                     Nombre del Producto *
                   </label>
                   <input
+                    ref={prodNameInputRef}
                     type="text"
                     required
                     value={formData.name}

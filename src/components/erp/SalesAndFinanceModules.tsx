@@ -539,6 +539,94 @@ export function SalesAndFinanceModules({
     return () => window.removeEventListener("keydown", handleGlobalKeyDown)
   }, [salesView, scannerActive, products, posSearch])
 
+  // Barcode scanner listener for Compras (receiving goods from suppliers with Roccia CBR-8200LW)
+  useEffect(() => {
+    if (activeSubModule !== "compras" || purchasesView !== "new_purchase") return
+
+    const handlePurKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement
+      const isInput =
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.tagName === "SELECT")
+
+      if (e.key === "Enter" && activeEl?.id === "purSearchInput") {
+        e.preventDefault()
+        if (purSearch.trim()) {
+          const matched = products.find(
+            p => p.sku && p.sku.toLowerCase() === purSearch.trim().toLowerCase()
+          )
+          if (matched) {
+            setPurItems(prev => {
+              const ex = prev.find(x => x.productId === matched.id)
+              if (ex) return prev.map(x => (x.productId === matched.id ? { ...x, quantity: x.quantity + 1 } : x))
+              return [...prev, { productId: matched.id, name: matched.name, quantity: 1, unitCost: matched.costPrice || matched.price || 0 }]
+            })
+            playScanBeep(true)
+            showMessage("success", `🔫 [ROCCIA] +1 en Factura de Compra: ${matched.name}`)
+            setPurSearch("")
+          }
+        }
+        return
+      }
+
+      if (isInput && activeEl?.id !== "purSearchInput") return
+
+      const now = Date.now()
+      const timeDiff = now - lastKeyTimeRef.current
+      lastKeyTimeRef.current = now
+
+      if (e.key === "Enter") {
+        if (barcodeBufferRef.current.length >= 2) {
+          e.preventDefault()
+          const code = barcodeBufferRef.current.trim()
+          barcodeBufferRef.current = ""
+          setPurSearch("")
+
+          const matched = products.find(
+            p =>
+              (p.sku && p.sku.toLowerCase() === code.toLowerCase()) ||
+              p.name.toLowerCase() === code.toLowerCase()
+          )
+          if (matched) {
+            setPurItems(prev => {
+              const ex = prev.find(x => x.productId === matched.id)
+              if (ex) {
+                return prev.map(x =>
+                  (x.productId === matched.id ? { ...x, quantity: x.quantity + 1 } : x)
+                )
+              }
+              return [
+                ...prev,
+                {
+                  productId: matched.id,
+                  name: matched.name,
+                  quantity: 1,
+                  unitCost: matched.costPrice || matched.price || 0,
+                },
+              ]
+            })
+            playScanBeep(true)
+            showMessage("success", `🔫 [ROCCIA CBR-8200LW] +1 en Compra: ${matched.name}`)
+          } else {
+            playScanBeep(false)
+            showMessage("error", `Código "${code}" no encontrado para compra.`)
+          }
+        }
+      } else if (e.key.length === 1) {
+        if (timeDiff > 70 && barcodeBufferRef.current.length > 0) {
+          barcodeBufferRef.current = e.key
+        } else {
+          barcodeBufferRef.current += e.key
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handlePurKeyDown)
+    return () => window.removeEventListener("keydown", handlePurKeyDown)
+  }, [activeSubModule, purchasesView, products, purSearch])
+
   // Camera Barcode Scanner lifecycle
   useEffect(() => {
     let animId: number
