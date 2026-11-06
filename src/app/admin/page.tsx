@@ -61,6 +61,22 @@ import {
   Calendar,
   HandCoins,
   PackageCheck,
+  Tag,
+  RotateCcw,
+  CheckSquare,
+  ArrowLeftRight,
+  AlertTriangle,
+  Printer,
+  HelpCircle,
+  Sliders,
+  Tv,
+  PieChart,
+  Brain,
+  ShieldAlert,
+  LineChart,
+  FileCode,
+  UserCheck,
+  Compass,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SalesAndFinanceModules } from "@/components/erp/SalesAndFinanceModules"
@@ -1117,7 +1133,7 @@ export default function AdminDashboard() {
                 }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <DollarSign className="w-4 h-4 text-emerald-400" />
+                  <CreditCard className="w-4 h-4 text-emerald-400" />
                 </div>
                 <span>Notas de Débito</span>
               </button>
@@ -1134,8 +1150,8 @@ export default function AdminDashboard() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                    <PackageCheck className="w-4 h-4 text-emerald-400" />
+                  <div className="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
+                    <PackageCheck className="w-4 h-4 text-teal-400" />
                   </div>
                   <span>Pedidos</span>
                 </div>
@@ -1145,29 +1161,245 @@ export default function AdminDashboard() {
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => {
+                  setActiveTab("ventas")
+                  setSalesSubView("orders")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-sky-400" />
+                </div>
+                <span>Cotizaciones</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("ventas")
+                  setSalesSubView("pos")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <ShoppingCart className="w-4 h-4 text-emerald-400" />
+                </div>
+                <span>Facturas</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("ventas")
+                  showMessage("success", "Módulo de Devoluciones de Venta listo")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                  <RotateCcw className="w-4 h-4 text-rose-400" />
+                </div>
+                <span>Devoluciones</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("ventas")
+                  showMessage("success", "Verificador de Salida y Despacho activo")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                  <CheckSquare className="w-4 h-4 text-purple-400" />
+                </div>
+                <span>Verificador salida</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("crm_vertical")
+                  setCrmSubTab("clientes")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                  <Users className="w-4 h-4 text-purple-400" />
+                </div>
+                <span>Vendedores</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("crm_vertical")
+                  setCrmSubTab("vertical")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4 text-sky-400" />
+                </div>
+                <span>Rutas y Visitas</span>
+              </button>
             </div>
 
-            {/* FINANZAS & SERVICIOS SP */}
+            {/* MARKETING */}
             <div className="space-y-1">
               <div className="text-[9px] font-black uppercase text-white/30 tracking-widest px-2.5 mb-1.5">
-                FINANZAS & SP
+                MARKETING
               </div>
               <button
                 onClick={() => {
-                  setActiveTab("bancos")
+                  setActiveTab("solar")
                   setSidebarOpen(false)
                 }}
                 className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
-                  activeTab === "bancos"
+                  activeTab === "solar"
                     ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
                     : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                 }`}
               >
-                <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                  <Landmark className="w-4 h-4 text-blue-400" />
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                  <Users className="w-4 h-4 text-purple-400" />
                 </div>
-                <span>Bancos y Cajas</span>
+                <span>CRM / Prospectos</span>
               </button>
+              <button
+                onClick={() => {
+                  setActiveTab("crm_vertical")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+                  <Compass className="w-4 h-4 text-sky-400" />
+                </div>
+                <span>Mapa Comercial</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("ventas")
+                  showMessage("success", "Gestor de Cupones y Descuentos activo")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
+                  <Tag className="w-4 h-4 text-pink-400" />
+                </div>
+                <span>Cupones</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("ventas")
+                  showMessage("success", "Panel de Promociones de Catálogo activo")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                  <BadgePercent className="w-4 h-4 text-rose-400" />
+                </div>
+                <span>Promociones</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("contabilidad")
+                  showMessage("success", "Estadísticas de Campañas Comerciales")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                  <LineChart className="w-4 h-4 text-purple-400" />
+                </div>
+                <span>Campañas</span>
+              </button>
+            </div>
+
+            {/* INVENTARIO */}
+            <div className="space-y-1">
+              <div className="text-[9px] font-black uppercase text-white/30 tracking-widest px-2.5 mb-1.5">
+                INVENTARIO
+              </div>
+              <button
+                onClick={() => {
+                  setActiveTab("inventario")
+                  setInventorySubTab("catalogo")
+                  setSidebarOpen(false)
+                }}
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "inventario" && inventorySubTab === "catalogo"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <Package className="w-4 h-4 text-amber-400" />
+                </div>
+                <span>Inventario</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("inventario")
+                  setInventorySubTab("kardex")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                  <ArrowLeftRight className="w-4 h-4 text-indigo-400" />
+                </div>
+                <span>Traslados</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("inventario")
+                  setInventorySubTab("kardex")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                </div>
+                <span>Ajustes de Inventario</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("inventario")
+                  showMessage("success", "Generador de Etiquetas de Código de Barras listo")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                  <Printer className="w-4 h-4 text-orange-400" />
+                </div>
+                <span>Impresión de Etiquetas</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("inventario")
+                  setInventorySubTab("kardex")
+                  setSidebarOpen(false)
+                }}
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "inventario" && inventorySubTab === "kardex"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+                  <Calendar className="w-4 h-4 text-sky-400" />
+                </div>
+                <span>Kardex Diario</span>
+              </button>
+            </div>
+
+            {/* FINANZAS */}
+            <div className="space-y-1">
+              <div className="text-[9px] font-black uppercase text-white/30 tracking-widest px-2.5 mb-1.5">
+                FINANZAS
+              </div>
               <button
                 onClick={() => {
                   setActiveTab("cxc_cxp")
@@ -1180,10 +1412,10 @@ export default function AdminDashboard() {
                     : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                 }`}
               >
-                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                  <CreditCard className="w-4 h-4 text-amber-400" />
+                <div className="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-4 h-4 text-teal-400" />
                 </div>
-                <span>Cuentas por Cobrar</span>
+                <span>CxC</span>
               </button>
               <button
                 onClick={() => {
@@ -1198,10 +1430,58 @@ export default function AdminDashboard() {
                 }`}
               >
                 <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
-                  <HandCoins className="w-4 h-4 text-red-400" />
+                  <DollarSign className="w-4 h-4 text-red-400" />
                 </div>
-                <span>Cuentas por Pagar</span>
+                <span>CxP</span>
               </button>
+              <button
+                onClick={() => {
+                  setActiveTab("inventario")
+                  setInventorySubTab("catalogo")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
+                  <Tag className="w-4 h-4 text-pink-400" />
+                </div>
+                <span>Listas de Precios</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("bancos")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-4 h-4 text-rose-400" />
+                </div>
+                <span>Gastos</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("bancos")
+                  setSidebarOpen(false)
+                }}
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "bancos"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                  <Landmark className="w-4 h-4 text-blue-400" />
+                </div>
+                <span>Bancos</span>
+              </button>
+            </div>
+
+            {/* ANÁLISIS */}
+            <div className="space-y-1">
+              <div className="text-[9px] font-black uppercase text-white/30 tracking-widest px-2.5 mb-1.5">
+                ANÁLISIS
+              </div>
               <button
                 onClick={() => {
                   setActiveTab("contabilidad")
@@ -1216,47 +1496,130 @@ export default function AdminDashboard() {
                 <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
                   <BarChart3 className="w-4 h-4 text-purple-400" />
                 </div>
-                <span>Contabilidad</span>
+                <span>Reportes</span>
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("crm_vertical")
-                  setCrmSubTab("vertical")
+                  setActiveTab("bancos")
+                  showMessage("success", "Cierre de Caja y Cuadre de Turno listo")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-4 h-4 text-pink-400" />
+                </div>
+                <span>Cierre de Caja</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("contabilidad")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                  <LineChart className="w-4 h-4 text-purple-400" />
+                </div>
+                <span>Rep. Avanzados</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("contabilidad")
+                  showMessage("success", "Detector de Fugas y Discrepancias activado")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-4 h-4 text-rose-400" />
+                </div>
+                <span>Detector de Fugas</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("contabilidad")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-4 h-4 text-amber-400" />
+                </div>
+                <span>Guardián de Márgenes</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("contabilidad")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                  <PieChart className="w-4 h-4 text-blue-400" />
+                </div>
+                <span>Analytics BI</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("contabilidad")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <Brain className="w-4 h-4 text-amber-400" />
+                </div>
+                <span>Inteligencia de Negocio</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("compras")
+                  setPurchasesSubView("retenciones")
                   setSidebarOpen(false)
                 }}
                 className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
-                  activeTab === "crm_vertical" && crmSubTab === "vertical"
+                  activeTab === "compras" && purchasesSubView === "retenciones"
                     ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
                     : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                 }`}
               >
-                <div className="w-7 h-7 rounded-lg bg-secondary/10 border border-secondary/20 flex items-center justify-center shrink-0">
-                  <Wrench className="w-4 h-4 text-secondary" />
+                <div className="w-7 h-7 rounded-lg bg-slate-500/10 border border-slate-500/20 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-slate-400" />
                 </div>
-                <span>Instalaciones SP</span>
+                <span>Retenciones</span>
+              </button>
+            </div>
+
+            {/* SISTEMA */}
+            <div className="space-y-1">
+              <div className="text-[9px] font-black uppercase text-white/30 tracking-widest px-2.5 mb-1.5">
+                SISTEMA
+              </div>
+              <button
+                onClick={() => {
+                  showMessage("success", "Format Builder de Documentos e Impresión")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                  <FileCode className="w-4 h-4 text-orange-400" />
+                </div>
+                <span>Format Builder</span>
               </button>
               <button
                 onClick={() => {
-                  setActiveTab("solar")
+                  setActiveTab("inventario")
+                  showMessage("success", "Visores de Precio en Línea activos")
                   setSidebarOpen(false)
                 }}
-                className={`relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all ${
-                  activeTab === "solar"
-                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
-                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
-                }`}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                    <SunMedium className="w-4 h-4 text-amber-400" />
-                  </div>
-                  <span>Leads Solares</span>
+                <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                  <Tv className="w-4 h-4 text-orange-400" />
                 </div>
-                {newSolarLeads > 0 && (
-                  <span className="text-[9px] bg-secondary text-white font-bold px-1.5 py-0.2 rounded-full">
-                    {newSolarLeads}
-                  </span>
-                )}
+                <span>Visores de Precio</span>
               </button>
               <button
                 onClick={() => {
@@ -1269,10 +1632,59 @@ export default function AdminDashboard() {
                     : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                 }`}
               >
-                <div className="w-7 h-7 rounded-lg bg-slate-500/10 border border-slate-500/20 flex items-center justify-center shrink-0">
-                  <Users className="w-4 h-4 text-slate-400" />
+                <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+                  <Users className="w-4 h-4 text-cyan-400" />
                 </div>
-                <span>Usuarios & Permisos</span>
+                <span>Usuarios</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("usuarios")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                  <UserCheck className="w-4 h-4 text-orange-400" />
+                </div>
+                <span>Cajeros</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("contabilidad")
+                  showMessage("success", "Bitácora de Auditoría del Sistema")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-slate-500/10 border border-slate-500/20 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-4 h-4 text-slate-400" />
+                </div>
+                <span>Auditoría</span>
+              </button>
+              <button
+                onClick={() => {
+                  setEditingRates(true)
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-slate-500/10 border border-slate-500/20 flex items-center justify-center shrink-0">
+                  <Settings className="w-4 h-4 text-slate-400" />
+                </div>
+                <span>Configuración</span>
+              </button>
+              <button
+                onClick={() => {
+                  window.open("https://wa.me/584147550091?text=Hola,%20requiero%20soporte%20tecnico%20con%20NexusCommerce%20Servicios%20SP", "_blank")
+                  setSidebarOpen(false)
+                }}
+                className="relative w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+              >
+                <div className="w-7 h-7 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shrink-0">
+                  <HelpCircle className="w-4 h-4 text-pink-400" />
+                </div>
+                <span>Soporte</span>
               </button>
             </div>
           </nav>
