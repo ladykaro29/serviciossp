@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import { jsPDF } from "jspdf"
 import {
   ShoppingCart,
@@ -35,11 +35,17 @@ import {
   X,
   Coins,
   Sparkles,
+  ClipboardList,
+  ShieldCheck,
+  Percent,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface SalesAndFinanceProps {
   activeSubModule: "ventas" | "compras" | "cxc_cxp"
+  salesSubView?: "pos" | "orders" | "debit_notes"
+  purchasesSubView?: "new_purchase" | "history" | "suppliers" | "debit_notes" | "credit_notes" | "retenciones" | "predictive"
+  cxcSubTab?: "cxc" | "cxp"
   products: any[]
   orders: any[]
   customers: any[]
@@ -58,6 +64,9 @@ interface SalesAndFinanceProps {
 
 export function SalesAndFinanceModules({
   activeSubModule,
+  salesSubView,
+  purchasesSubView,
+  cxcSubTab,
   products,
   orders,
   customers,
@@ -78,10 +87,10 @@ export function SalesAndFinanceModules({
   // ==========================================
   // 1. VENTAS & POS STATE (Executive Cloud ERP style)
   // ==========================================
-  const [salesView, setSalesView] = useState<"pos" | "orders">("pos")
+  const [salesView, setSalesView] = useState<"pos" | "orders" | "debit_notes">(salesSubView || "pos")
   const [posSearch, setPosSearch] = useState("")
   const [posCart, setPosCart] = useState<Array<{ id: string; name: string; sku: string; price: number; quantity: number; stock: number; isBundle?: boolean }>>([])
-  
+
   // Branch, Register & View Config (Matching reference)
   const [posBranch, setPosBranch] = useState("Sucursal Principal (El Vigía)")
   const [posRegister, setPosRegister] = useState("CAJA 1")
@@ -114,7 +123,9 @@ export function SalesAndFinanceModules({
   // ==========================================
   // 2. COMPRAS & PROVEEDORES STATE
   // ==========================================
-  const [purchasesView, setPurchasesView] = useState<"new_purchase" | "history" | "suppliers">("new_purchase")
+  const [purchasesView, setPurchasesView] = useState<
+    "new_purchase" | "history" | "suppliers" | "debit_notes" | "credit_notes" | "retenciones" | "predictive"
+  >(purchasesSubView || "new_purchase")
   const [purSupplierId, setPurSupplierId] = useState("")
   const [purSupplierName, setPurSupplierName] = useState("")
   const [purInvoiceNumber, setPurInvoiceNumber] = useState("")
@@ -141,7 +152,7 @@ export function SalesAndFinanceModules({
   // ==========================================
   // 3. CXC & CXP STATE
   // ==========================================
-  const [cxcTab, setCxcTab] = useState<"cxc" | "cxp">("cxc")
+  const [cxcTab, setCxcTab] = useState<"cxc" | "cxp">(cxcSubTab || "cxc")
   const [payingCxc, setPayingCxc] = useState<any | null>(null)
   const [cxcPayAmount, setCxcPayAmount] = useState<number>(0)
   const [cxcPayBankId, setCxcPayBankId] = useState<string>(bankAccounts[0]?.id || "")
@@ -151,6 +162,132 @@ export function SalesAndFinanceModules({
   const [cxpPayAmount, setCxpPayAmount] = useState<number>(0)
   const [cxpPayBankId, setCxpPayBankId] = useState<string>(bankAccounts[0]?.id || "")
   const [cxpPayRef, setCxpPayRef] = useState("")
+
+  // ==========================================
+  // 4. NOTAS DÉBITO, CRÉDITO Y RETENCIONES STATE
+  // ==========================================
+  const [purchaseDebitNotes, setPurchaseDebitNotes] = useState<Array<{
+    id: string
+    number: string
+    supplierName: string
+    invoiceRef: string
+    amount: number
+    reason: string
+    date: string
+  }>>([
+    {
+      id: "dn-1",
+      number: "ND-PROV-0012",
+      supplierName: "Victron Energy Venezuela",
+      invoiceRef: "FC-9941",
+      amount: 45.0,
+      reason: "Ajuste de flete aéreo urgente El Vigía",
+      date: "2026-11-02",
+    },
+  ])
+
+  const [purchaseCreditNotes, setPurchaseCreditNotes] = useState<Array<{
+    id: string
+    number: string
+    supplierName: string
+    invoiceRef: string
+    amount: number
+    reason: string
+    date: string
+  }>>([
+    {
+      id: "cn-1",
+      number: "NC-PROV-0008",
+      supplierName: "Growatt Distribución C.A.",
+      invoiceRef: "FC-8812",
+      amount: 120.0,
+      reason: "Garantía por cableado de fábrica sustituido",
+      date: "2026-11-01",
+    },
+  ])
+
+  const [retencionesFiscales, setRetencionesFiscales] = useState<Array<{
+    id: string
+    comprobanteNumber: string
+    supplierName: string
+    supplierRif: string
+    invoiceNumber: string
+    baseUsd: number
+    ivaRetenidoUsd: number
+    percent: number
+    date: string
+  }>>([
+    {
+      id: "ret-1",
+      comprobanteNumber: "20261100000001",
+      supplierName: "Dahua Technology Mérida",
+      supplierRif: "J-31998472-1",
+      invoiceNumber: "FC-1049",
+      baseUsd: 540.0,
+      ivaRetenidoUsd: 64.8,
+      percent: 75,
+      date: "2026-11-04",
+    },
+  ])
+
+  const [salesDebitNotes, setSalesDebitNotes] = useState<Array<{
+    id: string
+    number: string
+    customerName: string
+    invoiceRef: string
+    amount: number
+    reason: string
+    date: string
+  }>>([
+    {
+      id: "sdn-1",
+      number: "ND-CLI-0004",
+      customerName: "Agropecuaria Santa Elena",
+      invoiceRef: "FAC-1002",
+      amount: 35.0,
+      reason: "Interés por mora en cuota quincenal #2",
+      date: "2026-11-03",
+    },
+  ])
+
+  const [newDebitNoteForm, setNewDebitNoteForm] = useState({
+    supplierName: "",
+    invoiceRef: "",
+    amount: "",
+    reason: "",
+  })
+  const [newCreditNoteForm, setNewCreditNoteForm] = useState({
+    supplierName: "",
+    invoiceRef: "",
+    amount: "",
+    reason: "",
+  })
+  const [newRetencionForm, setNewRetencionForm] = useState({
+    supplierName: "",
+    supplierRif: "",
+    invoiceNumber: "",
+    baseUsd: "",
+    percent: "75",
+  })
+  const [newSalesDebitNoteForm, setNewSalesDebitNoteForm] = useState({
+    customerName: "",
+    invoiceRef: "",
+    amount: "",
+    reason: "",
+  })
+
+  // Synchronize internal views when parent sidebar triggers
+  useEffect(() => {
+    if (salesSubView) setSalesView(salesSubView)
+  }, [salesSubView])
+
+  useEffect(() => {
+    if (purchasesSubView) setPurchasesView(purchasesSubView)
+  }, [purchasesSubView])
+
+  useEffect(() => {
+    if (cxcSubTab) setCxcTab(cxcSubTab)
+  }, [cxcSubTab])
 
   // Categories list for POS
   const posCategories = useMemo(() => {
@@ -386,6 +523,74 @@ export function SalesAndFinanceModules({
     doc.save(`${saleData.invoiceNumber}_${saleData.customerName.replace(/\s+/g, "_")}.pdf`)
   }
 
+  // Generate Retención Fiscal PDF (Venezuela SENIAT Standard)
+  const handleDownloadRetencionPdf = (data: {
+    comprobanteNumber: string
+    supplierName: string
+    supplierRif: string
+    invoiceNumber: string
+    baseUsd: number
+    ivaRetenidoUsd: number
+    percent: number
+  }) => {
+    const doc = new jsPDF()
+    const rateBs = settings?.usdToBs || 65.5
+    doc.setFillColor(4, 17, 36)
+    doc.rect(0, 0, 210, 38, "F")
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(14)
+    doc.setFont("helvetica", "bold")
+    doc.text("COMPROBANTE DE RETENCIÓN DE IMPUESTO AL VALOR AGREGADO (IVA)", 14, 16)
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "normal")
+    doc.text("SERVICIOS Y SUMINISTROS SP, C.A. | RIF: J-40403649-0 | Agente de Retención SENIAT", 14, 24)
+    doc.text(`Tasa Oficial BCV: Bs. ${rateBs.toFixed(4)} / USD | Providencia SENIAT SNAT/2015/0049`, 14, 31)
+
+    doc.setTextColor(255, 98, 0)
+    doc.setFontSize(12)
+    doc.setFont("helvetica", "bold")
+    doc.text(`N° ${data.comprobanteNumber}`, 145, 18)
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(9)
+    doc.text(`Fecha: ${new Date().toLocaleDateString()}`, 145, 26)
+
+    doc.setTextColor(20, 20, 20)
+    doc.setFontSize(10)
+    doc.setFont("helvetica", "bold")
+    doc.text("SUJETO RETENIDO (PROVEEDOR):", 14, 48)
+    doc.setFont("helvetica", "normal")
+    doc.text(`Nombre / Razón Social: ${data.supplierName}`, 14, 55)
+    doc.text(`RIF: ${data.supplierRif || "J-000000000"}   |   Factura Afectada: ${data.invoiceNumber}`, 14, 61)
+
+    let y = 74
+    doc.setFillColor(240, 240, 240)
+    doc.rect(14, y - 5, 182, 8, "F")
+    doc.setFont("helvetica", "bold")
+    doc.setFontSize(8)
+    doc.text("BASE IMPONIBLE ($)", 16, y)
+    doc.text("BASE IMPONIBLE (Bs.)", 60, y)
+    doc.text("% RETENIDO", 110, y)
+    doc.text("IVA RETENIDO ($)", 140, y)
+    doc.text("TOTAL RETENIDO (Bs.)", 168, y)
+
+    y += 10
+    doc.setFont("helvetica", "normal")
+    const baseBs = data.baseUsd * rateBs
+    const ivaRetenidoBs = data.ivaRetenidoUsd * rateBs
+    doc.text(`$${data.baseUsd.toFixed(2)}`, 16, y)
+    doc.text(`Bs. ${baseBs.toFixed(2)}`, 60, y)
+    doc.text(`${data.percent}%`, 110, y)
+    doc.text(`$${data.ivaRetenidoUsd.toFixed(2)}`, 140, y)
+    doc.text(`Bs. ${ivaRetenidoBs.toFixed(2)}`, 168, y)
+
+    y += 25
+    doc.setFont("helvetica", "bold")
+    doc.text("Firma y Sello Agente de Retención: ___________________________", 14, y)
+    doc.text("Firma Sujeto Retenido: ___________________________", 120, y)
+
+    doc.save(`Comprobante_Retencion_${data.comprobanteNumber}.pdf`)
+  }
+
   // Submit POS Sale
   const handleCreatePosSale = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -611,10 +816,10 @@ export function SalesAndFinanceModules({
             </p>
           </div>
 
-          <div className="flex bg-[#041124] p-1.5 rounded-2xl border border-white/10 gap-2">
+          <div className="flex bg-[#041124] p-1.5 rounded-2xl border border-white/10 gap-2 flex-wrap">
             <button
               onClick={() => setSalesView("pos")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
                 salesView === "pos" ? "bg-secondary text-white shadow-lg" : "text-white/60 hover:text-white"
               }`}
             >
@@ -622,11 +827,19 @@ export function SalesAndFinanceModules({
             </button>
             <button
               onClick={() => setSalesView("orders")}
-              className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
                 salesView === "orders" ? "bg-secondary text-white shadow-lg" : "text-white/60 hover:text-white"
               }`}
             >
-              <Receipt className="w-4 h-4" /> Cotizaciones y Pedidos ({orders.length})
+              <Receipt className="w-4 h-4" /> Pedidos ({orders.length})
+            </button>
+            <button
+              onClick={() => setSalesView("debit_notes")}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+                salesView === "debit_notes" ? "bg-secondary text-white shadow-lg" : "text-white/60 hover:text-white"
+              }`}
+            >
+              <DollarSign className="w-4 h-4 text-emerald-400" /> Notas de Débito ({salesDebitNotes.length})
             </button>
           </div>
         </div>
@@ -1431,6 +1644,120 @@ export function SalesAndFinanceModules({
             )}
           </div>
         )}
+
+        {/* 3. NOTAS DE DÉBITO A CLIENTES */}
+        {salesView === "debit_notes" && (
+          <div className="space-y-6">
+            <div className="bg-[#041124]/60 p-6 rounded-3xl border border-white/5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-emerald-400" /> Notas de Débito a Clientes
+                  </h3>
+                  <p className="text-xs text-white/50">
+                    Emite cargos adicionales a clientes por fletes no previstos, ajustes de precio o intereses moratorios vinculados a CxC.
+                  </p>
+                </div>
+              </div>
+
+              {/* Form to issue a new debit note to client */}
+              <form
+                onSubmit={e => {
+                  e.preventDefault()
+                  if (!newSalesDebitNoteForm.customerName || !newSalesDebitNoteForm.amount) {
+                    showMessage("error", "Ingresa cliente y monto de la nota de débito.")
+                    return
+                  }
+                  const num = `ND-CLI-${String(salesDebitNotes.length + 1).padStart(4, "0")}`
+                  setSalesDebitNotes(prev => [
+                    {
+                      id: `sdn-${Date.now()}`,
+                      number: num,
+                      customerName: newSalesDebitNoteForm.customerName,
+                      invoiceRef: newSalesDebitNoteForm.invoiceRef || "VENTA-DIRECTA",
+                      amount: parseFloat(newSalesDebitNoteForm.amount) || 0,
+                      reason: newSalesDebitNoteForm.reason || "Ajuste comercial",
+                      date: new Date().toISOString().split("T")[0],
+                    },
+                    ...prev,
+                  ])
+                  setNewSalesDebitNoteForm({ customerName: "", invoiceRef: "", amount: "", reason: "" })
+                  showMessage("success", `Nota de Débito ${num} emitida con éxito.`)
+                }}
+                className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white/[0.02] p-4 rounded-2xl border border-white/5 text-xs"
+              >
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Cliente</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nombre del cliente"
+                    value={newSalesDebitNoteForm.customerName}
+                    onChange={e => setNewSalesDebitNoteForm({ ...newSalesDebitNoteForm, customerName: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Factura Ref.</label>
+                  <input
+                    type="text"
+                    placeholder="FAC-0000"
+                    value={newSalesDebitNoteForm.invoiceRef}
+                    onChange={e => setNewSalesDebitNoteForm({ ...newSalesDebitNoteForm, invoiceRef: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Monto ($ USD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={newSalesDebitNoteForm.amount}
+                    onChange={e => setNewSalesDebitNoteForm({ ...newSalesDebitNoteForm, amount: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-emerald-400 font-mono font-bold"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl h-9.5 text-xs">
+                    + Emitir Nota Débito
+                  </Button>
+                </div>
+              </form>
+
+              {/* Table of Sales Debit Notes */}
+              <div className="overflow-x-auto rounded-2xl border border-white/5">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#030917] text-white/40 text-[10px] font-black uppercase">
+                    <tr>
+                      <th className="p-3">N° Nota</th>
+                      <th className="p-3">Cliente</th>
+                      <th className="p-3">Factura Afectada</th>
+                      <th className="p-3">Fecha</th>
+                      <th className="p-3">Concepto</th>
+                      <th className="p-3 text-right">Monto ($ USD)</th>
+                      <th className="p-3 text-right">Monto (Bs.)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {salesDebitNotes.map(dn => (
+                      <tr key={dn.id} className="hover:bg-white/[0.02]">
+                        <td className="p-3 font-mono font-bold text-emerald-400">{dn.number}</td>
+                        <td className="p-3 font-bold text-white">{dn.customerName}</td>
+                        <td className="p-3 font-mono text-white/60">{dn.invoiceRef}</td>
+                        <td className="p-3 text-white/50">{dn.date}</td>
+                        <td className="p-3 text-white/70 italic">{dn.reason}</td>
+                        <td className="p-3 text-right font-mono font-bold text-emerald-400">${dn.amount.toFixed(2)}</td>
+                        <td className="p-3 text-right font-mono text-white/50">Bs. {(dn.amount * posRateBs).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -1453,30 +1780,62 @@ export function SalesAndFinanceModules({
             </p>
           </div>
 
-          <div className="flex bg-[#041124] p-1.5 rounded-2xl border border-white/10 gap-2">
+          <div className="flex bg-[#041124] p-1.5 rounded-2xl border border-white/10 gap-1.5 flex-wrap">
             <button
               onClick={() => setPurchasesView("new_purchase")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                purchasesView === "new_purchase" ? "bg-secondary text-white" : "text-white/60 hover:text-white"
+              className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                purchasesView === "new_purchase" ? "bg-secondary text-white shadow-lg" : "text-white/60 hover:text-white"
               }`}
             >
-              + Registrar Compra
+              + Compra
             </button>
             <button
               onClick={() => setPurchasesView("history")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                purchasesView === "history" ? "bg-secondary text-white" : "text-white/60 hover:text-white"
+              className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                purchasesView === "history" ? "bg-secondary text-white shadow-lg" : "text-white/60 hover:text-white"
               }`}
             >
-              Historial Compras ({purchases.length})
+              Historial ({purchases.length})
             </button>
             <button
               onClick={() => setPurchasesView("suppliers")}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                purchasesView === "suppliers" ? "bg-secondary text-white" : "text-white/60 hover:text-white"
+              className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                purchasesView === "suppliers" ? "bg-secondary text-white shadow-lg" : "text-white/60 hover:text-white"
               }`}
             >
               Proveedores ({suppliers.length})
+            </button>
+            <button
+              onClick={() => setPurchasesView("debit_notes")}
+              className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 ${
+                purchasesView === "debit_notes" ? "bg-secondary text-white shadow-lg" : "text-white/60 hover:text-white"
+              }`}
+            >
+              <DollarSign className="w-3.5 h-3.5 text-amber-400" /> Notas de Débito ({purchaseDebitNotes.length})
+            </button>
+            <button
+              onClick={() => setPurchasesView("credit_notes")}
+              className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 ${
+                purchasesView === "credit_notes" ? "bg-secondary text-white shadow-lg" : "text-white/60 hover:text-white"
+              }`}
+            >
+              <ClipboardList className="w-3.5 h-3.5 text-amber-400" /> NC de Compra ({purchaseCreditNotes.length})
+            </button>
+            <button
+              onClick={() => setPurchasesView("retenciones")}
+              className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 ${
+                purchasesView === "retenciones" ? "bg-secondary text-white shadow-lg" : "text-white/60 hover:text-white"
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-sky-400" /> Retenciones ({retencionesFiscales.length})
+            </button>
+            <button
+              onClick={() => setPurchasesView("predictive")}
+              className={`px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 ${
+                purchasesView === "predictive" ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30" : "text-purple-300 hover:text-white"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300" /> Predictivas
             </button>
           </div>
         </div>
@@ -1788,6 +2147,485 @@ export function SalesAndFinanceModules({
                   <div className="text-[11px] text-white/40 italic">{s.notes}</div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* 4. NOTAS DE DÉBITO A PROVEEDORES */}
+        {purchasesView === "debit_notes" && (
+          <div className="space-y-6">
+            <div className="bg-[#041124]/60 p-6 rounded-3xl border border-white/5 space-y-4">
+              <div className="border-b border-white/5 pb-4">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-amber-400" /> Notas de Débito a Proveedores
+                </h3>
+                <p className="text-xs text-white/50">
+                  Registra cargos y ajustes comerciales emitidos a proveedores (fletes adicionales, penalizaciones o diferencias de cotización).
+                </p>
+              </div>
+
+              {/* Form to issue a new debit note to supplier */}
+              <form
+                onSubmit={e => {
+                  e.preventDefault()
+                  if (!newDebitNoteForm.supplierName || !newDebitNoteForm.amount) {
+                    showMessage("error", "Ingresa proveedor y monto.")
+                    return
+                  }
+                  const num = `ND-PROV-${String(purchaseDebitNotes.length + 1).padStart(4, "0")}`
+                  setPurchaseDebitNotes(prev => [
+                    {
+                      id: `dn-${Date.now()}`,
+                      number: num,
+                      supplierName: newDebitNoteForm.supplierName,
+                      invoiceRef: newDebitNoteForm.invoiceRef || "COMPRA-DIR",
+                      amount: parseFloat(newDebitNoteForm.amount) || 0,
+                      reason: newDebitNoteForm.reason || "Ajuste de precio",
+                      date: new Date().toISOString().split("T")[0],
+                    },
+                    ...prev,
+                  ])
+                  setNewDebitNoteForm({ supplierName: "", invoiceRef: "", amount: "", reason: "" })
+                  showMessage("success", `Nota de Débito ${num} registrada correctamente.`)
+                }}
+                className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white/[0.02] p-4 rounded-2xl border border-white/5 text-xs"
+              >
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Proveedor</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nombre del proveedor"
+                    value={newDebitNoteForm.supplierName}
+                    onChange={e => setNewDebitNoteForm({ ...newDebitNoteForm, supplierName: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Factura Ref.</label>
+                  <input
+                    type="text"
+                    placeholder="FC-0000"
+                    value={newDebitNoteForm.invoiceRef}
+                    onChange={e => setNewDebitNoteForm({ ...newDebitNoteForm, invoiceRef: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Monto ($ USD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={newDebitNoteForm.amount}
+                    onChange={e => setNewDebitNoteForm({ ...newDebitNoteForm, amount: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-amber-400 font-mono font-bold"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl h-9.5 text-xs">
+                    + Registrar Nota Débito
+                  </Button>
+                </div>
+              </form>
+
+              {/* Table */}
+              <div className="overflow-x-auto rounded-2xl border border-white/5">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#030917] text-white/40 text-[10px] font-black uppercase">
+                    <tr>
+                      <th className="p-3">N° Nota</th>
+                      <th className="p-3">Proveedor</th>
+                      <th className="p-3">Factura Afectada</th>
+                      <th className="p-3">Fecha</th>
+                      <th className="p-3">Concepto</th>
+                      <th className="p-3 text-right">Monto ($ USD)</th>
+                      <th className="p-3 text-right">Monto (Bs.)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {purchaseDebitNotes.map(dn => (
+                      <tr key={dn.id} className="hover:bg-white/[0.02]">
+                        <td className="p-3 font-mono font-bold text-amber-400">{dn.number}</td>
+                        <td className="p-3 font-bold text-white">{dn.supplierName}</td>
+                        <td className="p-3 font-mono text-white/60">{dn.invoiceRef}</td>
+                        <td className="p-3 text-white/50">{dn.date}</td>
+                        <td className="p-3 text-white/70 italic">{dn.reason}</td>
+                        <td className="p-3 text-right font-mono font-bold text-amber-400">${dn.amount.toFixed(2)}</td>
+                        <td className="p-3 text-right font-mono text-white/50">Bs. {(dn.amount * posRateBs).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 5. NC DE COMPRA (NOTAS DE CRÉDITO DE PROVEEDORES) */}
+        {purchasesView === "credit_notes" && (
+          <div className="space-y-6">
+            <div className="bg-[#041124]/60 p-6 rounded-3xl border border-white/5 space-y-4">
+              <div className="border-b border-white/5 pb-4">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-amber-400" /> Notas de Crédito de Proveedores (NC de Compra)
+                </h3>
+                <p className="text-xs text-white/50">
+                  Registra saldos a favor otorgados por proveedores por devoluciones de mercancía dañada, bonificaciones comerciales o pronto pago.
+                </p>
+              </div>
+
+              {/* Form to register NC from supplier */}
+              <form
+                onSubmit={e => {
+                  e.preventDefault()
+                  if (!newCreditNoteForm.supplierName || !newCreditNoteForm.amount) {
+                    showMessage("error", "Ingresa proveedor y monto del crédito.")
+                    return
+                  }
+                  const num = `NC-PROV-${String(purchaseCreditNotes.length + 1).padStart(4, "0")}`
+                  setPurchaseCreditNotes(prev => [
+                    {
+                      id: `cn-${Date.now()}`,
+                      number: num,
+                      supplierName: newCreditNoteForm.supplierName,
+                      invoiceRef: newCreditNoteForm.invoiceRef || "COMPRA-DIR",
+                      amount: parseFloat(newCreditNoteForm.amount) || 0,
+                      reason: newCreditNoteForm.reason || "Devolución o bonificación",
+                      date: new Date().toISOString().split("T")[0],
+                    },
+                    ...prev,
+                  ])
+                  setNewCreditNoteForm({ supplierName: "", invoiceRef: "", amount: "", reason: "" })
+                  showMessage("success", `Nota de Crédito ${num} registrada a favor.`)
+                }}
+                className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-white/[0.02] p-4 rounded-2xl border border-white/5 text-xs"
+              >
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Proveedor</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nombre del proveedor"
+                    value={newCreditNoteForm.supplierName}
+                    onChange={e => setNewCreditNoteForm({ ...newCreditNoteForm, supplierName: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Factura Afectada</label>
+                  <input
+                    type="text"
+                    placeholder="FC-0000"
+                    value={newCreditNoteForm.invoiceRef}
+                    onChange={e => setNewCreditNoteForm({ ...newCreditNoteForm, invoiceRef: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Monto Crédito ($ USD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={newCreditNoteForm.amount}
+                    onChange={e => setNewCreditNoteForm({ ...newCreditNoteForm, amount: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-emerald-400 font-mono font-bold"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90 text-white font-bold rounded-xl h-9.5 text-xs">
+                    + Registrar Crédito a Favor
+                  </Button>
+                </div>
+              </form>
+
+              {/* Table */}
+              <div className="overflow-x-auto rounded-2xl border border-white/5">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#030917] text-white/40 text-[10px] font-black uppercase">
+                    <tr>
+                      <th className="p-3">N° NC</th>
+                      <th className="p-3">Proveedor</th>
+                      <th className="p-3">Factura Afectada</th>
+                      <th className="p-3">Fecha</th>
+                      <th className="p-3">Motivo</th>
+                      <th className="p-3 text-right">Saldo a Favor ($)</th>
+                      <th className="p-3 text-right">Saldo en Bs.</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {purchaseCreditNotes.map(cn => (
+                      <tr key={cn.id} className="hover:bg-white/[0.02]">
+                        <td className="p-3 font-mono font-bold text-secondary">{cn.number}</td>
+                        <td className="p-3 font-bold text-white">{cn.supplierName}</td>
+                        <td className="p-3 font-mono text-white/60">{cn.invoiceRef}</td>
+                        <td className="p-3 text-white/50">{cn.date}</td>
+                        <td className="p-3 text-white/70 italic">{cn.reason}</td>
+                        <td className="p-3 text-right font-mono font-bold text-emerald-400">${cn.amount.toFixed(2)}</td>
+                        <td className="p-3 text-right font-mono text-white/50">Bs. {(cn.amount * posRateBs).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 6. RETENCIONES FISCALES (IVA / ISLR) */}
+        {purchasesView === "retenciones" && (
+          <div className="space-y-6">
+            <div className="bg-[#041124]/60 p-6 rounded-3xl border border-white/5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-sky-400" /> Comprobantes de Retención Fiscal (SENIAT)
+                  </h3>
+                  <p className="text-xs text-white/50">
+                    Emisión y control de comprobantes de Retención de IVA (75% / 100%) y retenciones de ISLR a proveedores con descarga PDF oficial.
+                  </p>
+                </div>
+              </div>
+
+              {/* Form to issue a withholding certificate */}
+              <form
+                onSubmit={e => {
+                  e.preventDefault()
+                  const base = parseFloat(newRetencionForm.baseUsd) || 0
+                  const pct = parseFloat(newRetencionForm.percent) || 75
+                  if (!newRetencionForm.supplierName || base <= 0) {
+                    showMessage("error", "Ingresa proveedor y base imponible.")
+                    return
+                  }
+                  const ivaAmount = base * 0.16
+                  const ivaRetenido = ivaAmount * (pct / 100)
+                  const compNum = `${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, "0")}${String(retencionesFiscales.length + 1).padStart(8, "0")}`
+
+                  const newRet = {
+                    id: `ret-${Date.now()}`,
+                    comprobanteNumber: compNum,
+                    supplierName: newRetencionForm.supplierName,
+                    supplierRif: newRetencionForm.supplierRif || "J-000000000",
+                    invoiceNumber: newRetencionForm.invoiceNumber || "FC-0001",
+                    baseUsd: base,
+                    ivaRetenidoUsd: Number(ivaRetenido.toFixed(2)),
+                    percent: pct,
+                    date: new Date().toISOString().split("T")[0],
+                  }
+
+                  setRetencionesFiscales(prev => [newRet, ...prev])
+                  handleDownloadRetencionPdf(newRet)
+                  setNewRetencionForm({ supplierName: "", supplierRif: "", invoiceNumber: "", baseUsd: "", percent: "75" })
+                  showMessage("success", `Comprobante ${compNum} emitido y descargado en PDF.`)
+                }}
+                className="grid grid-cols-1 sm:grid-cols-5 gap-3 bg-white/[0.02] p-4 rounded-2xl border border-white/5 text-xs"
+              >
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Proveedor *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Nombre Proveedor"
+                    value={newRetencionForm.supplierName}
+                    onChange={e => setNewRetencionForm({ ...newRetencionForm, supplierName: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">RIF Proveedor</label>
+                  <input
+                    type="text"
+                    placeholder="J-12345678-0"
+                    value={newRetencionForm.supplierRif}
+                    onChange={e => setNewRetencionForm({ ...newRetencionForm, supplierRif: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">N° Factura</label>
+                  <input
+                    type="text"
+                    placeholder="FC-9988"
+                    value={newRetencionForm.invoiceNumber}
+                    onChange={e => setNewRetencionForm({ ...newRetencionForm, invoiceNumber: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-white/60 mb-1">Base Imponible ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={newRetencionForm.baseUsd}
+                    onChange={e => setNewRetencionForm({ ...newRetencionForm, baseUsd: e.target.value })}
+                    className="w-full bg-[#030917] border border-white/10 rounded-xl p-2.5 text-sky-400 font-mono font-bold"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button type="submit" className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl h-9.5 text-xs">
+                    + Emitir y PDF
+                  </Button>
+                </div>
+              </form>
+
+              {/* Retenciones Table */}
+              <div className="overflow-x-auto rounded-2xl border border-white/5">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#030917] text-white/40 text-[10px] font-black uppercase">
+                    <tr>
+                      <th className="p-3">Comprobante N°</th>
+                      <th className="p-3">Proveedor / RIF</th>
+                      <th className="p-3">Factura</th>
+                      <th className="p-3">Fecha</th>
+                      <th className="p-3 text-right">Base Imponible ($)</th>
+                      <th className="p-3 text-right">IVA Retenido ($)</th>
+                      <th className="p-3 text-right">IVA Retenido (Bs.)</th>
+                      <th className="p-3 text-center">PDF</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {retencionesFiscales.map(r => (
+                      <tr key={r.id} className="hover:bg-white/[0.02]">
+                        <td className="p-3 font-mono font-bold text-sky-400">{r.comprobanteNumber}</td>
+                        <td className="p-3">
+                          <div className="font-bold text-white">{r.supplierName}</div>
+                          <div className="text-[10px] font-mono text-white/50">{r.supplierRif}</div>
+                        </td>
+                        <td className="p-3 font-mono text-white/60">{r.invoiceNumber}</td>
+                        <td className="p-3 text-white/50">{r.date}</td>
+                        <td className="p-3 text-right font-mono text-white">${r.baseUsd.toFixed(2)}</td>
+                        <td className="p-3 text-right font-mono font-bold text-emerald-400">${r.ivaRetenidoUsd.toFixed(2)}</td>
+                        <td className="p-3 text-right font-mono font-bold text-sky-400">Bs. {(r.ivaRetenidoUsd * posRateBs).toFixed(2)}</td>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadRetencionPdf(r)}
+                            className="text-xs bg-white/5 hover:bg-white/10 text-sky-400 px-2 py-1 rounded-lg font-bold"
+                          >
+                            Descargar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 7. COMPRAS PREDICTIVAS (REPOSICIÓN INTELIGENTE) */}
+        {purchasesView === "predictive" && (
+          <div className="space-y-6">
+            <div className="bg-[#041124]/60 p-6 rounded-3xl border border-white/5 space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-yellow-300" /> Compras Predictivas — Reposición Sugerida de Almacén
+                  </h3>
+                  <p className="text-xs text-white/50 mt-0.5">
+                    Algoritmo Nexus ERP: Analiza productos con stock bajo o cerca del mínimo de seguridad y calcula el pedido óptimo para evitar rotura de stock.
+                  </p>
+                </div>
+
+                {products.filter(p => (p.stock ?? 15) <= (p.minStock ?? 3)).length > 0 && (
+                  <Button
+                    onClick={() => {
+                      const critical = products.filter(p => (p.stock ?? 15) <= (p.minStock ?? 3))
+                      const items = critical.map(p => ({
+                        productId: p.id,
+                        name: p.name,
+                        quantity: Math.max(1, (p.minStock ?? 3) * 3 - (p.stock ?? 0)),
+                        unitCost: Number(p.costPrice || p.price || 10),
+                      }))
+                      setPurItems(items)
+                      setPurchasesView("new_purchase")
+                      showMessage("success", `¡${items.length} productos críticos precargados en la nueva Orden de Compra!`)
+                    }}
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-purple-600/30 flex items-center gap-2"
+                  >
+                    <ShoppingCart className="w-4 h-4" /> ⚡ Cargar Todo en Orden de Compra
+                  </Button>
+                )}
+              </div>
+
+              {/* Products Table with Predictive Metrics */}
+              <div className="overflow-x-auto rounded-2xl border border-white/5">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[#030917] text-white/40 text-[10px] font-black uppercase">
+                    <tr>
+                      <th className="p-3">SKU / Producto</th>
+                      <th className="p-3">Categoría</th>
+                      <th className="p-3">Stock Actual</th>
+                      <th className="p-3">Mínimo Seguro</th>
+                      <th className="p-3 text-center">Sugerencia Reposición</th>
+                      <th className="p-3 text-right">Costo Estimado</th>
+                      <th className="p-3 text-right">Inversión ($ USD)</th>
+                      <th className="p-3 text-center">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {products
+                      .filter(p => (p.stock ?? 15) <= (p.minStock ?? 3) + 2)
+                      .map(p => {
+                        const stock = p.stock ?? 15
+                        const minStock = p.minStock ?? 3
+                        const suggestedQty = Math.max(1, minStock * 3 - stock)
+                        const cost = Number(p.costPrice || p.price || 10)
+                        const totalInv = suggestedQty * cost
+
+                        return (
+                          <tr key={p.id} className="hover:bg-white/[0.02]">
+                            <td className="p-3">
+                              <div className="font-bold text-white">{p.name}</div>
+                              <div className="text-[10px] font-mono text-white/40">{p.sku || "SP-0000"}</div>
+                            </td>
+                            <td className="p-3 text-white/60">{p.category}</td>
+                            <td className="p-3">
+                              <span
+                                className={`font-mono font-bold px-2 py-0.5 rounded ${
+                                  stock <= minStock ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-300"
+                                }`}
+                              >
+                                {stock} {p.unit || "UND"}
+                              </span>
+                            </td>
+                            <td className="p-3 font-mono text-white/50">{minStock} UND</td>
+                            <td className="p-3 text-center">
+                              <span className="font-mono font-black text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-lg border border-purple-500/20">
+                                +{suggestedQty} {p.unit || "UND"}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right font-mono text-white/60">${cost.toFixed(2)}</td>
+                            <td className="p-3 text-right font-mono font-bold text-emerald-400">${totalInv.toFixed(2)}</td>
+                            <td className="p-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPurItems(prev => {
+                                    const ex = prev.find(x => x.productId === p.id)
+                                    if (ex) return prev.map(x => (x.productId === p.id ? { ...x, quantity: suggestedQty } : x))
+                                    return [...prev, { productId: p.id, name: p.name, quantity: suggestedQty, unitCost: cost }]
+                                  })
+                                  setPurchasesView("new_purchase")
+                                  showMessage("success", `Agregado ${p.name} (x${suggestedQty}) a la orden de compra.`)
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-secondary/20 hover:bg-secondary text-secondary hover:text-white text-[11px] font-bold transition-all"
+                              >
+                                Reponer
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

@@ -143,6 +143,12 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [dashboardMetricView, setDashboardMetricView] = useState<"ventas" | "margen">("ventas")
   const [inventorySubTab, setInventorySubTab] = useState<"catalogo" | "kardex">("catalogo")
+  const [salesSubView, setSalesSubView] = useState<"pos" | "orders" | "debit_notes">("pos")
+  const [purchasesSubView, setPurchasesSubView] = useState<
+    "new_purchase" | "history" | "suppliers" | "debit_notes" | "credit_notes" | "retenciones" | "predictive"
+  >("new_purchase")
+  const [cxcSubTab, setCxcSubTab] = useState<"cxc" | "cxp">("cxc")
+  const [crmSubTab, setCrmSubTab] = useState<"vertical" | "clientes">("vertical")
 
   // Multi-currency State
   const [displayCurrency, setDisplayCurrency] = useState<"USD" | "BS" | "BINANCE" | "EUR">("USD")
@@ -818,21 +824,21 @@ export default function AdminDashboard() {
   if (!session) return null
 
   return (
-    <div className="min-h-screen bg-[#030712] text-white font-sans flex flex-col lg:flex-row overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#030712] text-white font-sans flex flex-col md:flex-row overflow-x-hidden relative">
       {/* ====================================================================
-          1. LEFT SIDEBAR (EXACT NEXUSCOMMERCE / SP ERP LAYOUT)
+          1. LEFT SIDEBAR (EXACT NEXUSCOMMERCE / SP ERP LAYOUT - FIRMLY ON THE LEFT)
          ==================================================================== */}
       {/* Mobile Backdrop */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm md:hidden"
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#050b18] border-r border-white/5 flex flex-col justify-between transition-transform duration-300 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:static lg:translate-x-0"
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#050b18] border-r border-white/5 flex flex-col justify-between transition-transform duration-300 md:translate-x-0 ${
+          sidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:sticky md:translate-x-0"
         } h-screen sticky top-0 overflow-y-auto shrink-0 select-none`}
       >
         <div className="flex flex-col">
@@ -849,7 +855,7 @@ export default function AdminDashboard() {
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-white/50 hover:text-white p-1 rounded-lg"
+              className="md:hidden text-white/50 hover:text-white p-1 rounded-lg"
             >
               <X className="w-5 h-5" />
             </button>
@@ -868,14 +874,16 @@ export default function AdminDashboard() {
                 <RefreshCw className={`w-3 h-3 ${syncingRates ? "animate-spin text-secondary" : ""}`} />
               </button>
             </div>
-            <div className="font-mono text-xs font-bold text-[#10b981] truncate">
+            <div className="font-mono text-xs font-bold text-blue-400 truncate">
               1 USD = {(settings?.usdToBs || 65.5).toFixed(4)} VES
             </div>
-            <div className="font-mono text-xs font-bold text-[#f59e0b] truncate">
-              Binance: {(settings?.binanceToBs || 78.9).toFixed(4)} VES
+            <div className="font-mono text-xs font-bold text-[#f59e0b] truncate flex items-center gap-1.5">
+              <span>🪙</span>
+              <span>Binance: {(settings?.binanceToBs || 78.9).toFixed(4)} VES</span>
             </div>
-            <div className="font-mono text-xs font-bold text-[#38bdf8] truncate">
-              Euro (BCV): {(settings?.eurToBs || 71.2).toFixed(4)} VES
+            <div className="font-mono text-xs font-bold text-[#38bdf8] truncate flex items-center gap-1.5">
+              <span>💶</span>
+              <span>Euro (BCV): {(settings?.eurToBs || 71.2).toFixed(4)} VES</span>
             </div>
           </div>
 
@@ -891,27 +899,32 @@ export default function AdminDashboard() {
                   setActiveTab("dashboard")
                   setSidebarOpen(false)
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
                   activeTab === "dashboard"
-                    ? "bg-blue-600/35 border border-blue-500/50 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
                     : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                 }`}
               >
-                <LayoutDashboard className="w-4 h-4 text-blue-400" />
+                <div className="w-7 h-7 rounded-lg bg-blue-600/30 border border-blue-500/30 flex items-center justify-center shrink-0">
+                  <LayoutDashboard className="w-4 h-4 text-blue-400" />
+                </div>
                 <span>Dashboard</span>
               </button>
               <button
                 onClick={() => {
                   setActiveTab("ventas")
+                  setSalesSubView("pos")
                   setSidebarOpen(false)
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
-                  activeTab === "ventas"
-                    ? "bg-blue-600/35 border border-blue-500/50 text-white font-bold"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "ventas" && salesSubView === "pos"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
                     : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                 }`}
               >
-                <Receipt className="w-4 h-4 text-green-400" />
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <Receipt className="w-4 h-4 text-emerald-400" />
+                </div>
                 <span>Punto de Venta</span>
               </button>
             </div>
@@ -927,14 +940,16 @@ export default function AdminDashboard() {
                   setInventorySubTab("catalogo")
                   setSidebarOpen(false)
                 }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all ${
+                className={`relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all ${
                   activeTab === "inventario" && inventorySubTab === "catalogo"
-                    ? "bg-blue-600/35 border border-blue-500/50 text-white font-bold"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
                     : "text-white/60 hover:text-white hover:bg-white/[0.04]"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Package className="w-4 h-4 text-blue-400" />
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                    <Package className="w-4 h-4 text-blue-400" />
+                  </div>
                   <span>Productos</span>
                 </div>
                 <span className="text-[10px] font-mono text-white/40">{totalProducts}</span>
@@ -945,29 +960,49 @@ export default function AdminDashboard() {
                   setInventorySubTab("kardex")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "inventario" && inventorySubTab === "kardex"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <Layers className="w-4 h-4 text-yellow-400" />
-                <span>Categorías & Kardex</span>
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <Layers className="w-4 h-4 text-amber-400" />
+                </div>
+                <span>Categorías</span>
               </button>
               <button
                 onClick={() => {
                   setActiveTab("compras")
+                  setPurchasesSubView("suppliers")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "compras" && purchasesSubView === "suppliers"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <Truck className="w-4 h-4 text-orange-400" />
+                <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                  <Truck className="w-4 h-4 text-orange-400" />
+                </div>
                 <span>Proveedores</span>
               </button>
               <button
                 onClick={() => {
                   setActiveTab("crm_vertical")
+                  setCrmSubTab("clientes")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "crm_vertical" && crmSubTab === "clientes"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <Users className="w-4 h-4 text-cyan-400" />
+                <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+                  <Users className="w-4 h-4 text-cyan-400" />
+                </div>
                 <span>Clientes</span>
               </button>
             </div>
@@ -980,41 +1015,86 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setActiveTab("compras")
+                  setPurchasesSubView("debit_notes")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "compras" && purchasesSubView === "debit_notes"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <DollarSign className="w-4 h-4 text-amber-400" />
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-4 h-4 text-amber-400" />
+                </div>
                 <span>Notas de Débito</span>
               </button>
               <button
                 onClick={() => {
                   setActiveTab("compras")
+                  setPurchasesSubView("new_purchase")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "compras" && (purchasesSubView === "new_purchase" || purchasesSubView === "history")
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <ShoppingCart className="w-4 h-4 text-orange-400" />
+                <div className="w-7 h-7 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                  <ShoppingCart className="w-4 h-4 text-orange-400" />
+                </div>
                 <span>Compras</span>
               </button>
               <button
                 onClick={() => {
                   setActiveTab("compras")
+                  setPurchasesSubView("credit_notes")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "compras" && purchasesSubView === "credit_notes"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <ClipboardList className="w-4 h-4 text-amber-300" />
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <ClipboardList className="w-4 h-4 text-amber-300" />
+                </div>
                 <span>NC de Compra</span>
               </button>
               <button
                 onClick={() => {
                   setActiveTab("compras")
+                  setPurchasesSubView("retenciones")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "compras" && purchasesSubView === "retenciones"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <Sparkles className="w-4 h-4 text-purple-400" />
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-blue-400" />
+                </div>
+                <span>Retenciones</span>
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("compras")
+                  setPurchasesSubView("predictive")
+                  setSidebarOpen(false)
+                }}
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "compras" && purchasesSubView === "predictive"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
+              >
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                </div>
                 <span>Compras Predictivas</span>
               </button>
             </div>
@@ -1027,22 +1107,36 @@ export default function AdminDashboard() {
               <button
                 onClick={() => {
                   setActiveTab("ventas")
+                  setSalesSubView("debit_notes")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "ventas" && salesSubView === "debit_notes"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <DollarSign className="w-4 h-4 text-green-400" />
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <DollarSign className="w-4 h-4 text-emerald-400" />
+                </div>
                 <span>Notas de Débito</span>
               </button>
               <button
                 onClick={() => {
                   setActiveTab("ventas")
+                  setSalesSubView("orders")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "ventas" && salesSubView === "orders"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="flex items-center gap-3">
-                  <PackageCheck className="w-4 h-4 text-emerald-400" />
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <PackageCheck className="w-4 h-4 text-emerald-400" />
+                  </div>
                   <span>Pedidos</span>
                 </div>
                 {pendingOrders > 0 && (
@@ -1063,29 +1157,49 @@ export default function AdminDashboard() {
                   setActiveTab("bancos")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "bancos"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <Landmark className="w-4 h-4 text-blue-400" />
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                  <Landmark className="w-4 h-4 text-blue-400" />
+                </div>
                 <span>Bancos y Cajas</span>
               </button>
               <button
                 onClick={() => {
                   setActiveTab("cxc_cxp")
+                  setCxcSubTab("cxc")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "cxc_cxp" && cxcSubTab === "cxc"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <CreditCard className="w-4 h-4 text-amber-400" />
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-4 h-4 text-amber-400" />
+                </div>
                 <span>Cuentas por Cobrar</span>
               </button>
               <button
                 onClick={() => {
                   setActiveTab("cxc_cxp")
+                  setCxcSubTab("cxp")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "cxc_cxp" && cxcSubTab === "cxp"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <HandCoins className="w-4 h-4 text-red-400" />
+                <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center shrink-0">
+                  <HandCoins className="w-4 h-4 text-red-400" />
+                </div>
                 <span>Cuentas por Pagar</span>
               </button>
               <button
@@ -1093,19 +1207,32 @@ export default function AdminDashboard() {
                   setActiveTab("contabilidad")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "contabilidad"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <BarChart3 className="w-4 h-4 text-purple-400" />
+                <div className="w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                  <BarChart3 className="w-4 h-4 text-purple-400" />
+                </div>
                 <span>Contabilidad</span>
               </button>
               <button
                 onClick={() => {
                   setActiveTab("crm_vertical")
+                  setCrmSubTab("vertical")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "crm_vertical" && crmSubTab === "vertical"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <Wrench className="w-4 h-4 text-secondary" />
+                <div className="w-7 h-7 rounded-lg bg-secondary/10 border border-secondary/20 flex items-center justify-center shrink-0">
+                  <Wrench className="w-4 h-4 text-secondary" />
+                </div>
                 <span>Instalaciones SP</span>
               </button>
               <button
@@ -1113,10 +1240,16 @@ export default function AdminDashboard() {
                   setActiveTab("solar")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "solar"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
                 <div className="flex items-center gap-3">
-                  <SunMedium className="w-4 h-4 text-amber-400" />
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                    <SunMedium className="w-4 h-4 text-amber-400" />
+                  </div>
                   <span>Leads Solares</span>
                 </div>
                 {newSolarLeads > 0 && (
@@ -1130,30 +1263,36 @@ export default function AdminDashboard() {
                   setActiveTab("usuarios")
                   setSidebarOpen(false)
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
+                className={`relative w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                  activeTab === "usuarios"
+                    ? "bg-[#0e1d3d] border border-blue-500/30 text-white font-bold shadow-[0_0_15px_rgba(59,130,246,0.25)] before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-blue-500 before:rounded-r"
+                    : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                }`}
               >
-                <Users className="w-4 h-4 text-slate-400" />
+                <div className="w-7 h-7 rounded-lg bg-slate-500/10 border border-slate-500/20 flex items-center justify-center shrink-0">
+                  <Users className="w-4 h-4 text-slate-400" />
+                </div>
                 <span>Usuarios & Permisos</span>
               </button>
             </div>
           </nav>
         </div>
 
-        {/* Sidebar Footer User Info */}
+        {/* Sidebar Footer User Info (v9.0) */}
         <div className="p-3 border-t border-white/5 bg-[#030712]/50 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-md">
+            <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-black text-xs flex items-center justify-center shadow-md">
               A
             </div>
             <div className="overflow-hidden">
               <span className="text-xs font-bold text-white block truncate">Administrador</span>
-              <span className="text-[10px] text-white/40 block">v8.0</span>
+              <span className="text-[10px] text-white/40 block font-semibold">v9.0</span>
             </div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/admin/login" })}
             title="Cerrar sesión"
-            className="text-white/40 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            className="w-8 h-8 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-red-500/20 text-white/40 hover:text-red-400 flex items-center justify-center transition-colors"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -2244,6 +2383,9 @@ export default function AdminDashboard() {
         {(activeTab === "ventas" || activeTab === "compras" || activeTab === "cxc_cxp") && (
           <SalesAndFinanceModules
             activeSubModule={activeTab}
+            salesSubView={salesSubView}
+            purchasesSubView={purchasesSubView}
+            cxcSubTab={cxcSubTab}
             products={products}
             orders={orders}
             customers={customers}
@@ -2270,6 +2412,7 @@ export default function AdminDashboard() {
           activeTab === "usuarios") && (
           <TreasuryAndCrmModules
             activeSubModule={activeTab}
+            crmSubTab={crmSubTab}
             products={products}
             orders={orders}
             customers={customers}

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Landmark,
   ArrowUpRight,
@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button"
 
 interface TreasuryAndCrmProps {
   activeSubModule: "bancos" | "contabilidad" | "crm_vertical" | "usuarios"
+  crmSubTab?: "vertical" | "clientes"
   products: any[]
   orders: any[]
   customers: any[]
@@ -42,6 +43,7 @@ interface TreasuryAndCrmProps {
 
 export function TreasuryAndCrmModules({
   activeSubModule,
+  crmSubTab,
   products,
   orders,
   customers,
@@ -81,6 +83,10 @@ export function TreasuryAndCrmModules({
 
   // CRM & Vertical State
   const [crmTab, setCrmTab] = useState<"vertical" | "clientes">("vertical")
+
+  useEffect(() => {
+    if (crmSubTab) setCrmTab(crmSubTab)
+  }, [crmSubTab])
   const [srvForm, setSrvForm] = useState({
     id: "",
     customerName: "",
