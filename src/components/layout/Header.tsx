@@ -3,12 +3,12 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ShoppingCart, Menu, Mail, MapPin, Phone, Facebook, Instagram, Twitter } from "lucide-react"
+import { ShoppingCart, Menu, Mail, MapPin, Phone, Facebook, Instagram, Twitter, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/context/CartContext"
 
 export function Header() {
-    const { totalItems } = useCart()
+    const { totalItems, totalQuoteItems } = useCart()
     const pathname = usePathname()
 
     if (pathname?.startsWith("/admin")) {
@@ -45,7 +45,15 @@ export function Header() {
                             <Link href="#" className="text-white/40 hover:text-secondary transition-colors"><Instagram className="w-3.5 h-3.5" /></Link>
                             <Link href="#" className="text-white/40 hover:text-secondary transition-colors"><Twitter className="w-3.5 h-3.5" /></Link>
                         </div>
-                        <Link href="/cotizacion" className="font-black text-secondary hover:text-white transition-colors">Solicitar Cotización</Link>
+                        <Link href="/cotizacion" className="font-black text-secondary hover:text-white transition-colors flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Solicitar Cotización</span>
+                            {totalQuoteItems > 0 && (
+                                <span className="bg-secondary text-white text-[9px] px-1.5 py-0.2 rounded-full font-mono font-bold">
+                                    {totalQuoteItems}
+                                </span>
+                            )}
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -86,10 +94,23 @@ export function Header() {
                     </nav>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-4">
-                        <Link href="/cotizacion">
-                            <Button variant="ghost" size="icon" className="relative text-white hover:text-secondary hover:bg-white/5 h-12 w-12 rounded-2xl">
-                                <ShoppingCart className="h-6 w-6" />
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        {/* Cotizaciones Button */}
+                        <Link href="/cotizacion" title="Cotizaciones y Presupuestos (PDF / Cuotas)">
+                            <Button variant="ghost" size="icon" className="relative text-white/80 hover:text-secondary hover:bg-white/5 h-11 w-11 rounded-2xl transition-all">
+                                <FileText className="h-5 w-5" />
+                                {totalQuoteItems > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-300">
+                                        {totalQuoteItems}
+                                    </span>
+                                )}
+                            </Button>
+                        </Link>
+
+                        {/* Carrito de Compra Directa */}
+                        <Link href="/carrito" title="Carrito de Compras">
+                            <Button variant="ghost" size="icon" className="relative text-white hover:text-secondary hover:bg-white/5 h-11 w-11 rounded-2xl transition-all">
+                                <ShoppingCart className="h-5 w-5" />
                                 {totalItems > 0 && (
                                     <span className="absolute -top-1 -right-1 bg-secondary text-white text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-300">
                                         {totalItems}
@@ -98,7 +119,7 @@ export function Header() {
                             </Button>
                         </Link>
                         
-                        <Button className="hidden sm:flex bg-secondary hover:bg-secondary/90 text-white font-black px-6 h-12 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-secondary/10" asChild>
+                        <Button className="hidden sm:flex bg-secondary hover:bg-secondary/90 text-white font-black px-6 h-11 rounded-xl text-xs uppercase tracking-widest shadow-lg shadow-secondary/10" asChild>
                             <Link href="/contacto">Consulta Gratis</Link>
                         </Button>
 

@@ -26,6 +26,8 @@ import {
   Flame,
   Award,
   RefreshCw,
+  ShoppingCart,
+  FileText,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { products as initialProducts } from "@/lib/data/products"
@@ -102,7 +104,9 @@ export default function ProductosPage() {
   })
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
   const [selectedVariantIdx, setSelectedVariantIdx] = useState<number>(0)
-  const { addToCart } = useCart()
+  const { addToCart, addToQuote } = useCart()
+  const [addedCartId, setAddedCartId] = useState<string | number | null>(null)
+  const [addedQuoteId, setAddedQuoteId] = useState<string | number | null>(null)
 
   useEffect(() => {
     fetch("/api/products")
@@ -254,15 +258,30 @@ export default function ProductosPage() {
     const itemToAdd = variant
       ? {
           ...product,
-          id: `${product.id}-${variant.name}`,
+          id: `${product.id}-${variant.name.replace(/\s+/g, "_")}`,
           name: `${product.name} (${variant.name})`,
           price: variant.price || product.price,
         }
       : product
 
-    addToCart(itemToAdd)
-    setAddedProductId(product.id)
-    setTimeout(() => setAddedProductId(null), 2000)
+    addToCart(itemToAdd, variant)
+    setAddedCartId(product.id)
+    setTimeout(() => setAddedCartId(null), 2000)
+  }
+
+  const handleAddToQuote = (product: any, variant?: { name: string; price: number }) => {
+    const itemToAdd = variant
+      ? {
+          ...product,
+          id: `${product.id}-${variant.name.replace(/\s+/g, "_")}`,
+          name: `${product.name} (${variant.name})`,
+          price: variant.price || product.price,
+        }
+      : product
+
+    addToQuote(itemToAdd, variant)
+    setAddedQuoteId(product.id)
+    setTimeout(() => setAddedQuoteId(null), 2000)
   }
 
   const handleWhatsApp = (productName: string, variantName?: string) => {
@@ -452,29 +471,52 @@ export default function ProductosPage() {
                 </div>
 
                 {/* Actions */}
-                <div className="pt-3 flex flex-wrap gap-3">
+                <div className="pt-3 flex flex-wrap gap-2.5">
                   <Button
                     onClick={() => openProductDetail(currentSlide)}
-                    className="h-12 px-6 rounded-2xl bg-secondary hover:bg-secondary/90 text-white font-black uppercase tracking-wider text-xs gap-2 shadow-xl shadow-secondary/20"
+                    className="h-12 px-5 rounded-2xl bg-secondary hover:bg-secondary/90 text-white font-black uppercase tracking-wider text-xs gap-2 shadow-xl shadow-secondary/20"
                   >
-                    <Eye className="w-4 h-4" /> Ver Especificaciones Técnicas
+                    <Eye className="w-4 h-4" /> Ficha Técnica
                   </Button>
 
+                  {/* Botón Carrito (Compra Directa) */}
                   <Button
                     onClick={() => handleAddToCart(currentSlide)}
-                    className={`h-12 px-5 rounded-2xl font-black uppercase tracking-wider text-xs gap-2 transition-all ${
-                      addedProductId === currentSlide.id
+                    className={`h-12 px-4 rounded-2xl font-black uppercase tracking-wider text-xs gap-2 transition-all ${
+                      addedCartId === currentSlide.id
                         ? "bg-green-600 text-white"
                         : "bg-white/10 hover:bg-white/20 text-white border border-white/15"
                     }`}
+                    title="Agregar al Carrito para compra inmediata"
                   >
-                    {addedProductId === currentSlide.id ? (
+                    {addedCartId === currentSlide.id ? (
                       <>
-                        <Check className="w-4 h-4" /> Agregado
+                        <Check className="w-4 h-4" /> En Carrito
                       </>
                     ) : (
                       <>
-                        <Plus className="w-4 h-4" /> Agregar a Solicitud
+                        <ShoppingCart className="w-4 h-4 text-secondary" /> Comprar
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Botón Cotización (Presupuesto Formal / Cuotas) */}
+                  <Button
+                    onClick={() => handleAddToQuote(currentSlide)}
+                    className={`h-12 px-4 rounded-2xl font-black uppercase tracking-wider text-xs gap-2 transition-all ${
+                      addedQuoteId === currentSlide.id
+                        ? "bg-amber-600 text-white"
+                        : "bg-white/10 hover:bg-white/20 text-white border border-white/15"
+                    }`}
+                    title="Agregar a Lista de Cotización formal"
+                  >
+                    {addedQuoteId === currentSlide.id ? (
+                      <>
+                        <Check className="w-4 h-4" /> En Cotización
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 text-amber-400" /> Cotizar
                       </>
                     )}
                   </Button>
@@ -915,29 +957,52 @@ export default function ProductosPage() {
                             )}
                           </div>
 
-                          <div className="flex gap-2">
+                          <div className="flex items-center gap-1.5">
+                            {/* Botón Carrito (Compra Inmediata) si tiene precio */}
+                            {hasPrice && (
+                              <Button
+                                onClick={() => handleAddToCart(product)}
+                                size="icon"
+                                className={`h-10 w-10 rounded-xl shrink-0 shadow-md transition-all hover:scale-105 active:scale-95 ${
+                                  addedCartId === product.id
+                                    ? "bg-green-600 text-white"
+                                    : "bg-secondary text-white hover:bg-secondary/90 shadow-secondary/20"
+                                }`}
+                                title="Agregar al Carrito (Compra Directa)"
+                              >
+                                {addedCartId === product.id ? (
+                                  <Check className="w-4 h-4" />
+                                ) : (
+                                  <ShoppingCart className="w-4 h-4" />
+                                )}
+                              </Button>
+                            )}
+
+                            {/* Botón Cotización (Presupuesto / Cuotas) */}
                             <Button
-                              onClick={() => handleAddToCart(product)}
+                              onClick={() => handleAddToQuote(product)}
                               size="icon"
-                              className={`h-11 w-11 rounded-2xl shrink-0 shadow-lg transition-all hover:scale-105 active:scale-95 ${
-                                addedProductId === product.id
-                                  ? "bg-green-600 text-white"
-                                  : "bg-secondary text-white hover:bg-secondary/90 shadow-secondary/20"
+                              variant="outline"
+                              className={`h-10 w-10 rounded-xl shrink-0 transition-all hover:scale-105 active:scale-95 ${
+                                addedQuoteId === product.id
+                                  ? "bg-amber-600 text-white border-amber-500"
+                                  : "border-white/15 bg-white/5 hover:bg-amber-500/20 hover:border-amber-500/40 text-amber-300"
                               }`}
-                              title="Agregar a solicitud"
+                              title="Agregar a Cotización Formal (PDF / Cuotas)"
                             >
-                              {addedProductId === product.id ? (
+                              {addedQuoteId === product.id ? (
                                 <Check className="w-4 h-4" />
                               ) : (
-                                <Plus className="w-4 h-4" />
+                                <FileText className="w-4 h-4" />
                               )}
                             </Button>
 
+                            {/* Botón WhatsApp */}
                             <Button
                               onClick={() => handleWhatsApp(product.name)}
                               size="icon"
                               variant="outline"
-                              className="h-11 w-11 rounded-2xl shrink-0 border-white/10 bg-white/5 hover:bg-green-600/20 hover:border-green-500/40 text-white hover:text-green-400 transition-all"
+                              className="h-10 w-10 rounded-xl shrink-0 border-white/10 bg-white/5 hover:bg-green-600/20 hover:border-green-500/40 text-white hover:text-green-400 transition-all"
                               title="Consultar por WhatsApp"
                             >
                               <MessageCircle className="w-4 h-4 text-green-400" />
@@ -1210,15 +1275,27 @@ export default function ProductosPage() {
                       }}
                       className="flex-1 h-14 bg-secondary hover:bg-secondary/90 text-white font-black uppercase tracking-wider rounded-2xl gap-2 shadow-xl shadow-secondary/20"
                     >
-                      <Plus className="w-5 h-5" /> Agregar a Solicitud
+                      <ShoppingCart className="w-5 h-5" /> Agregar al Carrito (Comprar)
+                      {activeVariant ? ` (${activeVariant.name})` : ""}
+                    </Button>
+
+                    <Button
+                      onClick={() => {
+                        handleAddToQuote(selectedProduct, activeVariant || undefined)
+                        setSelectedProduct(null)
+                      }}
+                      variant="outline"
+                      className="flex-1 h-14 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 hover:text-white font-black uppercase tracking-wider rounded-2xl gap-2"
+                    >
+                      <FileText className="w-5 h-5 text-amber-400" /> Añadir a Cotización (PDF)
                       {activeVariant ? ` (${activeVariant.name})` : ""}
                     </Button>
 
                     <Button
                       onClick={() => handleWhatsApp(selectedProduct.name, activeVariant?.name)}
-                      className="h-14 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-wider rounded-2xl gap-2 px-6"
+                      className="h-14 bg-green-600 hover:bg-green-700 text-white font-black uppercase tracking-wider rounded-2xl gap-2 px-5"
                     >
-                      <MessageCircle className="w-5 h-5" /> Consultar en WhatsApp
+                      <MessageCircle className="w-5 h-5" /> WhatsApp
                     </Button>
                   </div>
                 </div>

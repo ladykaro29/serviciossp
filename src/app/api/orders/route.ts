@@ -66,7 +66,8 @@ export async function POST(request: Request) {
         ]
 
     const parsedTotal = parseFloat(total) || 0
-    const invoiceNumber = `COT-${Date.now().toString().slice(-6)}`
+    const prefix = body.orderType === "ORDER" ? "ORD" : "COT"
+    const invoiceNumber = body.invoiceNumber || `${prefix}-${Date.now().toString().slice(-6)}`
 
     try {
       const newOrder = await prisma.order.create({

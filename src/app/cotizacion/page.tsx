@@ -49,7 +49,15 @@ interface SubmittedQuoteSummary {
 }
 
 export default function CotizacionPage() {
-  const { cart, addToCart, removeFromCart, updateQuantity, clearCart, totalItems } = useCart()
+  const {
+    quoteList: cart,
+    addToQuote: addToCart,
+    removeFromQuote: removeFromCart,
+    updateQuoteQuantity: updateQuantity,
+    clearQuote: clearCart,
+    totalQuoteItems: totalItems,
+    totalItems: directCartCount,
+  } = useCart()
 
   // Catalog for quick-adding directly inside /cotizacion
   const [catalog, setCatalog] = useState<any[]>(initialProducts)
@@ -599,8 +607,18 @@ export default function CotizacionPage() {
               Centro de <span className="text-secondary">Cotización</span>
             </h1>
             <p className="text-white/70 mt-3 text-base md:text-lg max-w-2xl">
-              Selecciona tus equipos o describe tu proyecto, elige entre pago de contado o en cuotas ({rates.defaultInitialPercent}% inicial + {rates.defaultInstallments} cuotas cada {rates.defaultFrequencyDays} días) y obtén tu presupuesto al instante.
+              Selecciona tus equipos o describe tu proyecto, elige entre pago de contado o en cuotas ({rates.defaultInitialPercent}% inicial + {rates.defaultInstallments} cuotas cada {rates.defaultFrequencyDays} días) y obtén tu presupuesto formal en PDF.
             </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-white/50">¿Prefieres compra directa inmediata?</span>
+              <Link
+                href="/carrito"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/10 hover:bg-secondary/20 border border-white/15 hover:border-secondary/40 text-white font-bold text-xs transition-all"
+              >
+                <ShoppingBag className="w-3.5 h-3.5 text-secondary" />
+                <span>Ir al Carrito de Compras {directCartCount > 0 ? `(${directCartCount})` : ""}</span>
+              </Link>
+            </div>
           </div>
 
           {/* Multi-currency Switcher */}
