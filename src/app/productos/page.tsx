@@ -32,6 +32,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { products as initialProducts } from "@/lib/data/products"
 import { useCart } from "@/context/CartContext"
+import { getProductImageUrl } from "@/lib/productImage"
 
 function normalizeFeature(feat: any): string {
   if (typeof feat === "string") return feat
@@ -539,28 +540,14 @@ export default function ProductosPage() {
                 >
                   <div className="absolute inset-0 bg-gradient-to-tr from-secondary/10 via-transparent to-blue-500/10 opacity-50 group-hover:opacity-100 transition-opacity"></div>
 
-                  {currentSlide.image && currentSlide.image !== "/placeholder-product.png" ? (
-                    <img
-                      src={currentSlide.image}
-                      alt={currentSlide.name}
-                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 relative z-10 drop-shadow-2xl"
-                      onError={e => {
-                        ;(e.target as any).style.display = "none"
-                      }}
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-center p-6 relative z-10">
-                      <div className="w-24 h-24 rounded-3xl bg-secondary/15 border border-secondary/30 flex items-center justify-center text-secondary mb-4 shadow-xl group-hover:scale-110 transition-transform">
-                        <Zap className="w-12 h-12" />
-                      </div>
-                      <span className="text-xl font-black uppercase text-white/90 tracking-wider">
-                        {currentSlide.brand || "Servicios SP"}
-                      </span>
-                      <span className="text-xs text-white/50 font-mono mt-1">
-                        {currentSlide.category}
-                      </span>
-                    </div>
-                  )}
+                  <img
+                    src={getProductImageUrl(currentSlide)}
+                    alt={currentSlide.name}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 relative z-10 drop-shadow-2xl"
+                    onError={e => {
+                      ;(e.target as any).src = "/placeholder-product.png"
+                    }}
+                  />
 
                   {/* Floating Trust Badge */}
                   <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-[10px] font-black uppercase tracking-wider bg-[#020813]/90 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/10 text-white/80 z-20">
@@ -815,25 +802,14 @@ export default function ProductosPage() {
                       >
                         <div className="absolute inset-0 bg-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
-                        {product.image && product.image !== "/placeholder-product.png" ? (
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 relative z-10 drop-shadow-md"
-                            onError={e => {
-                              ;(e.target as any).style.display = "none"
-                            }}
-                          />
-                        ) : (
-                          <div className="w-32 h-32 rounded-3xl bg-white/[0.03] border border-white/10 flex flex-col items-center justify-center text-center p-3 group-hover:scale-105 transition-transform duration-500 relative z-10">
-                            <span className="text-xl font-black uppercase tracking-wider text-white/20 group-hover:text-secondary/40 transition-colors">
-                              {product.brand || "SP"}
-                            </span>
-                            <span className="text-[10px] text-white/30 font-mono mt-1">
-                              {product.category}
-                            </span>
-                          </div>
-                        )}
+                        <img
+                          src={getProductImageUrl(product)}
+                          alt={product.name}
+                          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 relative z-10 drop-shadow-md"
+                          onError={e => {
+                            ;(e.target as any).src = "/placeholder-product.png"
+                          }}
+                        />
 
                         {/* Stock Badge */}
                         <div className="absolute top-4 left-4 z-20">
@@ -1093,17 +1069,14 @@ export default function ProductosPage() {
                 {/* Left Column: Image & Badges */}
                 <div className="md:col-span-5 space-y-4">
                   <div className="aspect-square rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden p-6 relative">
-                    {selectedProduct.image && selectedProduct.image !== "/placeholder-product.png" ? (
-                      <img
-                        src={selectedProduct.image}
-                        alt={selectedProduct.name}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-4xl font-black uppercase text-white/15">
-                        {selectedProduct.brand || "SP"}
-                      </div>
-                    )}
+                    <img
+                      src={getProductImageUrl(selectedProduct)}
+                      alt={selectedProduct.name}
+                      className="w-full h-full object-contain"
+                      onError={e => {
+                        ;(e.target as any).src = "/placeholder-product.png"
+                      }}
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-center">

@@ -5,6 +5,7 @@ import { useCart } from "@/context/CartContext"
 import { products as initialProducts } from "@/lib/data/products"
 import { Button } from "@/components/ui/button"
 import { jsPDF } from "jspdf"
+import { getProductImageUrl } from "@/lib/productImage"
 import {
   Trash2,
   Plus,
@@ -699,17 +700,14 @@ export default function CotizacionPage() {
                         className="p-6 flex flex-col sm:flex-row items-center gap-5 group hover:bg-white/[0.02] transition-colors"
                       >
                         <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center text-foreground shrink-0 border border-white/10 relative overflow-hidden p-2">
-                          {item.image && item.image !== "/placeholder-product.png" ? (
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-full h-full object-contain"
-                            />
-                          ) : (
-                            <span className="text-xl font-black uppercase opacity-20">
-                              {(item.brand || "SP")[0]}
-                            </span>
-                          )}
+                          <img
+                            src={getProductImageUrl(item)}
+                            alt={item.name}
+                            className="w-full h-full object-contain"
+                            onError={e => {
+                              ;(e.target as any).src = "/placeholder-product.png"
+                            }}
+                          />
                         </div>
 
                         <div className="flex-1 text-center sm:text-left">

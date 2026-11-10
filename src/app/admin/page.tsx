@@ -85,6 +85,7 @@ import { SalesAndFinanceModules } from "@/components/erp/SalesAndFinanceModules"
 import { TreasuryAndCrmModules } from "@/components/erp/TreasuryAndCrmModules"
 import { SalesExtendedModules } from "@/components/erp/SalesExtendedModules"
 import { MarketingAndInventoryModules } from "@/components/erp/MarketingAndInventoryModules"
+import { getProductImageUrl } from "@/lib/productImage"
 import { AnalyticsAndSystemModules } from "@/components/erp/AnalyticsAndSystemModules"
 
 interface ProductItem {
@@ -3001,6 +3002,7 @@ export default function AdminDashboard() {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40 bg-white/[0.02]">
+                          <th className="py-4 px-3 w-14 text-center">Foto</th>
                           <th className="py-4 px-5">SKU / Equipo</th>
                           <th className="py-4 px-4">Categoría</th>
                           <th className="py-4 px-4">Stock Actual</th>
@@ -3024,6 +3026,27 @@ export default function AdminDashboard() {
 
                           return (
                             <tr key={product.id} className="hover:bg-white/[0.02] transition-colors">
+                              {/* Foto / Thumbnail interactivo */}
+                              <td className="py-3 px-3 text-center">
+                                <div
+                                  onClick={() => handleOpenEdit(product)}
+                                  className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 overflow-hidden mx-auto flex items-center justify-center cursor-pointer hover:border-secondary/60 hover:scale-105 transition-all group/img relative shadow-sm"
+                                  title="Clic para editar o cambiar foto"
+                                >
+                                  <img
+                                    src={getProductImageUrl(product)}
+                                    alt={product.name}
+                                    className="w-full h-full object-cover"
+                                    onError={e => {
+                                      ;(e.target as any).src = "/placeholder-product.png"
+                                    }}
+                                  />
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity text-white text-[9px] font-bold">
+                                    <Eye className="w-3.5 h-3.5 text-secondary" />
+                                  </div>
+                                </div>
+                              </td>
+
                               <td className="py-3.5 px-5">
                                 <div className="flex items-center gap-3">
                                   <span className="font-mono text-[10px] bg-white/10 px-2 py-0.5 rounded text-secondary font-bold">
@@ -3548,19 +3571,15 @@ export default function AdminDashboard() {
                   Imagen del Producto (Subir Archivo o URL)
                 </label>
                 <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <div className="w-24 h-24 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
-                    {formData.image && formData.image !== "/placeholder-product.png" ? (
-                      <img
-                        src={formData.image}
-                        alt="Vista previa"
-                        className="w-full h-full object-cover"
-                        onError={e => {
-                          ;(e.target as any).style.display = "none"
-                        }}
-                      />
-                    ) : (
-                      <Package className="w-8 h-8 text-white/20" />
-                    )}
+                  <div className="w-24 h-24 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 relative">
+                    <img
+                      src={getProductImageUrl(formData)}
+                      alt="Vista previa"
+                      className="w-full h-full object-cover"
+                      onError={e => {
+                        ;(e.target as any).src = "/placeholder-product.png"
+                      }}
+                    />
                   </div>
 
                   <div className="flex-1 w-full space-y-2">

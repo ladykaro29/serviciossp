@@ -5,6 +5,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { useCart } from "@/context/CartContext"
 import { Button } from "@/components/ui/button"
+import { getProductImageUrl } from "@/lib/productImage"
 import {
   ShoppingCart,
   Trash2,
@@ -403,17 +404,16 @@ export default function CarritoPage() {
                       className="bg-[#041124] border border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all hover:border-white/20"
                     >
                       <div className="flex items-center gap-4 min-w-0">
-                        {item.image && (
-                          <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-1">
-                            <Image
-                              src={item.image}
-                              alt={item.name}
-                              width={64}
-                              height={64}
-                              className="object-contain w-full h-full"
-                            />
-                          </div>
-                        )}
+                        <div className="w-16 h-16 rounded-xl bg-white/5 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                          <img
+                            src={getProductImageUrl(item)}
+                            alt={item.name}
+                            className="object-contain w-full h-full"
+                            onError={e => {
+                              ;(e.target as any).src = "/placeholder-product.png"
+                            }}
+                          />
+                        </div>
                         <div className="min-w-0">
                           <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-secondary/15 text-secondary border border-secondary/20">
                             {item.category || "SP"}
@@ -731,3 +731,4 @@ export default function CarritoPage() {
     </div>
   )
 }
+

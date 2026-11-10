@@ -46,6 +46,7 @@ import {
   Scan,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { getProductImageUrl } from "@/lib/productImage"
 
 interface SalesAndFinanceProps {
   activeSubModule: "ventas" | "compras" | "cxc_cxp"
@@ -1400,20 +1401,14 @@ export function SalesAndFinanceModules({
                         >
                           {/* Image Box */}
                           <div className="w-full h-24 rounded-xl bg-[#030917] border border-white/5 flex items-center justify-center overflow-hidden mb-2 relative">
-                            {prod.image && prod.image !== "/placeholder-product.png" ? (
-                              <img
-                                src={prod.image}
-                                alt={prod.name}
-                                className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform"
-                                onError={e => {
-                                  ;(e.target as any).style.display = "none"
-                                }}
-                              />
-                            ) : (
-                              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/30">
-                                📦
-                              </div>
-                            )}
+                            <img
+                              src={getProductImageUrl(prod)}
+                              alt={prod.name}
+                              className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform"
+                              onError={e => {
+                                ;(e.target as any).src = "/placeholder-product.png"
+                              }}
+                            />
 
                             {prod.isBundle && (
                               <span className="absolute top-1 left-1 text-[8px] bg-purple-500/90 text-white px-1.5 py-0.5 rounded font-black uppercase tracking-wider flex items-center gap-0.5 shadow-md">
