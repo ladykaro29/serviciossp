@@ -33,6 +33,7 @@ import {
   Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { InteractiveChartsSuite } from "./InteractiveCharts"
 
 interface AnalyticsAndSystemProps {
   section: "finanzas" | "analisis" | "sistema"
@@ -613,6 +614,14 @@ export function AnalyticsAndSystemModules({
             <span className="text-[10px] text-purple-300">Fidelización alta</span>
           </div>
         </div>
+
+        {/* Suite de Gráficas Interactivas con Framer Motion */}
+        <InteractiveChartsSuite
+          orders={orders}
+          products={products}
+          usdToBs={settings?.usdToBs || 65.5}
+          formatMoney={formatMoney}
+        />
 
         {/* AI Recommendations */}
         <div className="bg-[#040e24] border border-blue-500/30 rounded-3xl p-6 space-y-3">

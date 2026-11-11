@@ -87,6 +87,7 @@ import { SalesExtendedModules } from "@/components/erp/SalesExtendedModules"
 import { MarketingAndInventoryModules } from "@/components/erp/MarketingAndInventoryModules"
 import { getProductImageUrl } from "@/lib/productImage"
 import { AnalyticsAndSystemModules } from "@/components/erp/AnalyticsAndSystemModules"
+import { InteractiveChartsSuite } from "@/components/erp/InteractiveCharts"
 
 interface ProductItem {
   id: string
@@ -2457,90 +2458,16 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* TWO LARGE BOTTOM PANELS (Side by Side as in screenshot) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                {/* Left Panel: Ventas por Mes (USD) */}
-                <div className="bg-[#050e20] border border-white/5 rounded-3xl p-6 shadow-xl flex flex-col justify-between min-h-[340px]">
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-bold text-white">Ventas por Mes (USD)</h3>
-                      <div className="flex items-center bg-[#020713] p-1 rounded-xl border border-white/10 text-xs">
-                        <button
-                          onClick={() => setDashboardMetricView("ventas")}
-                          className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                            dashboardMetricView === "ventas"
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "text-white/40 hover:text-white"
-                          }`}
-                        >
-                          Ventas
-                        </button>
-                        <button
-                          onClick={() => setDashboardMetricView("margen")}
-                          className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                            dashboardMetricView === "margen"
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "text-white/40 hover:text-white"
-                          }`}
-                        >
-                          Margen
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Chart Container */}
-                    <div className="h-44 w-full flex items-end justify-between pt-6 px-2 border-b border-white/5 relative">
-                      {/* Y-Axis Guidelines */}
-                      <div className="absolute inset-x-0 inset-y-0 flex flex-col justify-between pointer-events-none text-[9px] font-mono text-white/20 pb-6">
-                        <div className="border-b border-white/[0.03] w-full">$1.00</div>
-                        <div className="border-b border-white/[0.03] w-full">$0.80</div>
-                        <div className="border-b border-white/[0.03] w-full">$0.60</div>
-                        <div className="border-b border-white/[0.03] w-full">$0.40</div>
-                        <div className="border-b border-white/[0.03] w-full">$0.20</div>
-                        <div className="border-b border-white/[0.03] w-full">$0.00</div>
-                      </div>
-
-                      {/* Month Bars */}
-                      {["Jun", "Jul", "Ago", "Sep", "Oct", "Nov"].map((month, idx) => (
-                        <div key={month} className="flex-1 flex flex-col items-center gap-2 z-10">
-                          <div
-                            className={`w-8 rounded-t-md transition-all ${
-                              idx === 5
-                                ? "h-12 bg-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                                : "h-1 bg-white/10"
-                            }`}
-                          />
-                          <span className={`text-[10px] font-bold ${idx === 5 ? "text-white" : "text-white/30"}`}>
-                            {month}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <p className="text-[10px] text-white/40 mt-4 text-center">
-                    Total facturado por mes — mes actual resaltado, mejor mes en color plano.
-                  </p>
-                </div>
-
-                {/* Right Panel: Top Productos — 30 días */}
-                <div className="bg-[#050e20] border border-white/5 rounded-3xl p-6 shadow-xl flex flex-col justify-between min-h-[340px]">
-                  <div>
-                    <h3 className="text-sm font-bold text-white mb-4">Top Productos — 30 días</h3>
-                    <div className="h-44 flex flex-col items-center justify-center text-center">
-                      <span className="text-sm font-semibold text-white/60 mb-1">Sin ventas registradas</span>
-                      <p className="text-xs text-white/30 max-w-sm">
-                        Productos con mayor ingreso facturado en los últimos 30 días, con su margen %.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="border-t border-white/5 pt-3 flex justify-between items-center text-[10px] text-white/40">
-                    <span>Ranking de rotación comercial</span>
-                    <button onClick={() => setActiveTab("inventario")} className="text-blue-400 hover:underline">
-                      Ver Catálogo Completo →
-                    </button>
-                  </div>
-                </div>
+              {/* ====================================================================
+                  ESTADÍSTICAS Y GRÁFICAS INTERACTIVAS (FRAMER MOTION + TAILWIND)
+                 ==================================================================== */}
+              <div className="mt-6">
+                <InteractiveChartsSuite
+                  orders={orders}
+                  products={products}
+                  usdToBs={settings?.usdToBs || 65.5}
+                  formatMoney={formatMoney}
+                />
               </div>
 
               {/* ====================================================================
